@@ -126,7 +126,7 @@ export function isArray(): (arg: any) => any[];
 export function isArray<T>(next: (arg: any[]) => T[]): (arg: any) => T[];
 export function isArray(next?: (arg: any[]) => any[]): (arg: any) => any[] {
   return (arg: any) => {
-    if (!(arg instanceof Array)) throw new Error('Not array!');
+    if (!(arg instanceof Array)) throw new Error('Not an array');
     return next ? next(arg) : arg;
   };
 }
