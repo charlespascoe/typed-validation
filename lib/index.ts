@@ -51,6 +51,14 @@ export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined 
 }
 
 
+export function isBoolean(next?: Ident<boolean>): (arg: any) => boolean {
+  return (arg: any) => {
+    if (typeof arg !== 'boolean') throw new Error('Not a boolean');
+    return next ? next(arg) : arg;
+  };
+}
+
+
 export function isNumber(next?: Ident<number>): (arg: any) => number {
   return (arg: any) => {
     if (typeof arg !== 'number') throw new Error('Not a number');
