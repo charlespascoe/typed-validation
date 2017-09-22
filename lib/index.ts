@@ -51,6 +51,16 @@ export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined 
 }
 
 
+export function defaultsTo(def: any): (arg: any) => any;
+export function defaultsTo<T>(def: T, next?: (arg: any) => T): (arg: any) => T;
+export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => any {
+  return (arg: any) => {
+    if (arg === undefined) return def;
+    return next ? next(arg) : arg;
+  };
+}
+
+
 export function isBoolean(next?: Ident<boolean>): (arg: any) => boolean {
   return (arg: any) => {
     if (typeof arg !== 'boolean') throw new Error('Not a boolean');
