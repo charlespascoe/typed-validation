@@ -3,7 +3,7 @@ export type Validator<T> = {
 };
 
 
-export type Result<T> = {
+export type Validated<T> = {
   [key in keyof T]: T[key];
 }
 
@@ -13,7 +13,7 @@ export interface ILength {
 }
 
 
-export function validate<T>(arg: any, validator: Validator<T>): Result<T> {
+export function validate<T>(arg: any, validator: Validator<T>): Validated<T> {
   if (typeof arg !== 'object') throw new Error('Not an object');
 
   let result: {[key in keyof T]?: T[key]} = {};
@@ -22,7 +22,7 @@ export function validate<T>(arg: any, validator: Validator<T>): Result<T> {
     result[key] = validator[key](arg[key]);
   }
 
-  return result as Result<T>;
+  return result as Validated<T>;
 }
 
 
