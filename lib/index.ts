@@ -1,4 +1,4 @@
-export type Schema<T> =  {
+export type Validator<T> =  {
   [key in keyof T]: (arg: any) => T[key]
 };
 
@@ -27,13 +27,13 @@ export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: a
 }
 
 
-export function validate<T>(arg: any, schema: Schema<T>): Result<T> {
+export function validate<T>(arg: any, validator: Validator<T>): Result<T> {
   if (typeof arg !== 'object') throw new Error('Not an object');
 
   let result: {[key in keyof T]?: T[key]} = {};
 
-  for (let key in schema) {
-    result[key] = schema[key](arg[key]);
+  for (let key in validator) {
+    result[key] = validator[key](arg[key]);
   }
 
   return result as Result<T>;
@@ -149,9 +149,9 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
 }
 
 
-export function conformsTo<T>(schema: Schema<T>): (arg: any) => T {
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => T {
   return (arg: any) => {
-    return validate(arg, schema);
+    return validate(arg, validator);
   };
 }
 
