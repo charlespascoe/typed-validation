@@ -1,4 +1,4 @@
-export type Schema<T> =  {
+export type Validator<T> =  {
   [key in keyof T]: (arg: any) => T[key]
 };
 
@@ -27,13 +27,13 @@ export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: a
 }
 
 
-export function validate<T>(arg: any, schema: Schema<T>): Result<T> {
+export function validate<T>(arg: any, validator: Validator<T>): Result<T> {
   if (typeof arg !== 'object') throw new Error('Not an object');
 
   let result: {[key in keyof T]?: T[key]} = {};
 
-  for (let key in schema) {
-    result[key] = schema[key](arg[key]);
+  for (let key in validator) {
+    result[key] = validator[key](arg[key]);
   }
 
   return result as Result<T>;
@@ -47,6 +47,16 @@ export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined 
   return (arg: any) => {
     if (arg === undefined) return undefined;
     return next(arg);
+  };
+}
+
+
+export function defaultsTo(def: any): (arg: any) => any;
+export function defaultsTo<T>(def: T, next?: (arg: any) => T): (arg: any) => T;
+export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => any {
+  return (arg: any) => {
+    if (arg === undefined) return def;
+    return next ? next(arg) : arg;
   };
 }
 
@@ -126,7 +136,7 @@ export function isArray(): (arg: any) => any[];
 export function isArray<T>(next: (arg: any[]) => T[]): (arg: any) => T[];
 export function isArray(next?: (arg: any[]) => any[]): (arg: any) => any[] {
   return (arg: any) => {
-    if (!(arg instanceof Array)) throw new Error('Not array!');
+    if (!(arg instanceof Array)) throw new Error('Not an array');
     return next ? next(arg) : arg;
   };
 }
@@ -139,9 +149,9 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
 }
 
 
-export function conformsTo<T>(schema: Schema<T>): (arg: any) => T {
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => T {
   return (arg: any) => {
-    return validate(arg, schema);
+    return validate(arg, validator);
   };
 }
 
