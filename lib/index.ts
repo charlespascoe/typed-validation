@@ -177,6 +177,16 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
 }
 
 
+export function isObject(): (arg: any) => any;
+export function isObject<T>(next: (arg: any) => T): (arg: any) => T;
+export function isObject(next?: (arg: any) => any): (arg: any) => any {
+  return (arg: any) => {
+    if (typeof arg !== 'object') throw new Error('Not an object');
+    return next ? next(arg) : arg;
+  };
+}
+
+
 export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
 export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
 export function conformsTo<T>(validator: Validator<T>, next?: (arg: Validated<T>) => any): (arg: any) => any {
