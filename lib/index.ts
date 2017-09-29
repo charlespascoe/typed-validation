@@ -58,6 +58,18 @@ export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => an
 }
 
 
+export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => U): (arg: T) => U {
+  return (arg: T) => {
+    try {
+      return next(arg);
+    } catch (_) {
+      // Ignore error - resort to default
+      return def;
+    }
+  };
+}
+
+
 export function isBoolean(): (arg: any) => boolean;
 export function isBoolean<T=boolean>(next: (arg: boolean) => T): (arg: any) => T;
 export function isBoolean(next?: (arg: boolean) => any): (arg: any) => any {
