@@ -52,8 +52,20 @@ export function defaultsTo(def: any): (arg: any) => any;
 export function defaultsTo<T>(def: T, next: (arg: any) => T): (arg: any) => T;
 export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => any {
   return (arg: any) => {
-    if (arg === undefined) return def;
+    if (arg === undefined) arg = def;
     return next ? next(arg) : arg;
+  };
+}
+
+
+export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => U): (arg: T) => U {
+  return (arg: T) => {
+    try {
+      return next(arg);
+    } catch (_) {
+      // Ignore error - resort to default
+      return def;
+    }
   };
 }
 
@@ -165,9 +177,12 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
 }
 
 
-export function conformsTo<T>(validator: Validator<T>): (arg: any) => T {
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
+export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
+export function conformsTo<T>(validator: Validator<T>, next?: (arg: Validated<T>) => any): (arg: any) => any {
   return (arg: any) => {
-    return validate(arg, validator);
+    let validated = validate(arg, validator);
+    return next ? next(validated) : validated;
   };
 }
 
