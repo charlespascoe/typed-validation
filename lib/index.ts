@@ -177,9 +177,12 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
 }
 
 
-export function conformsTo<T>(validator: Validator<T>): (arg: any) => T {
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
+export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
+export function conformsTo<T>(validator: Validator<T>, next?: (arg: Validated<T>) => any): (arg: any) => any {
   return (arg: any) => {
-    return validate(arg, validator);
+    let validated = validate(arg, validator);
+    return next ? next(validated) : validated;
   };
 }
 
