@@ -48,6 +48,14 @@ export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined 
 }
 
 
+export function nullable<T>(next: (arg: any) => T): (arg: any) => T | null {
+  return (arg: any) => {
+    if (arg === null) return null;
+    return next(arg);
+  };
+}
+
+
 export function defaultsTo(def: any): (arg: any) => any;
 export function defaultsTo<T>(def: T, next: (arg: any) => T): (arg: any) => T;
 export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => any {
