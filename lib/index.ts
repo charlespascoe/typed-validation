@@ -26,6 +26,21 @@ export function validate<T>(arg: any, validator: Validator<T>): Validated<T> {
 }
 
 
+export function extendValidator<T,U>(validator1: Validator<T>, validator2: Validator<U>): Validator<T & U> {
+  let result: any = {};
+
+  for (let key in validator1) {
+    result[key] = validator1[key];
+  }
+
+  for (let key in validator2) {
+    result[key] = validator2[key];
+  }
+
+  return result as Validator<T & U>;
+}
+
+
 export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: any) => T {
   return (arg: any) => {
     try {
@@ -43,6 +58,14 @@ export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: a
 export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined {
   return (arg: any) => {
     if (arg === undefined) return undefined;
+    return next(arg);
+  };
+}
+
+
+export function nullable<T>(next: (arg: any) => T): (arg: any) => T | null {
+  return (arg: any) => {
+    if (arg === null) return null;
     return next(arg);
   };
 }
