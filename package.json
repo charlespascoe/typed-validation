@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "gulp build",
-    "watch": "gulp watch",
+    "build": "npm run clean && tsc --pretty --outDir ./dist/ || exit 0",
+    "watch": "npm run clean && tsc --pretty -w --outDir ./dist/",
+    "clean": "rm -rf ./dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,11 +21,6 @@
   },
   "homepage": "https://github.com/cpascoe95/validate-interface#readme",
   "devDependencies": {
-    "gulp": "3.9.1",
-    "gulp-sourcemaps": "2.6.1",
-    "gulp-typescript": "3.2.2",
-    "merge-stream": "1.0.1",
-    "rimraf": "2.6.2",
     "typescript": "2.5.2"
   }
 }
