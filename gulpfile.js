@@ -7,17 +7,7 @@ const gulp = require('gulp'),
 
 const srcDir = './lib';
 const outputDir = './dist';
-
-const tsProject = ts.createProject({
-  declaration: true,
-  baseUrl: srcDir,
-  paths: {
-    'validate-interface/*': ['*']
-  },
-  target: 'ES5',
-  strict: true,
-  noImplicitAny: true,
-}, ts.reporter.fullReporter(true));
+const tsProject = ts.createProject('tsconfig.json');
 
 
 gulp.task('clean', function (cb) {
@@ -28,7 +18,7 @@ gulp.task('clean', function (cb) {
 gulp.task('build', function () {
   let tsBuild = gulp.src(srcDir + '/**/*.ts')
     .pipe(sourcemaps.init())
-    .pipe(tsProject());
+    .pipe(tsProject(ts.reporter.fullReporter(true)));
 
   return merge(
     tsBuild.js

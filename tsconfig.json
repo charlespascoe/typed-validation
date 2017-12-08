@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "baseUrl": "./lib/",
+    "paths": {
+      "validate-interface/*": ["*"]
+    },
+    "target": "ES5",
+    "strict": true,
+    "noImplicitAny": true
+  }
+}
