@@ -7,6 +7,7 @@
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Assertions](#assertions)
+- [Handling Validation Errors](#handling-validation-errors)
 - [Documentation](#documentation)
     - [Validator](#validator)
     - [extendValidator](#extendvalidator)
