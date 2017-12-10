@@ -71,12 +71,11 @@ try {
     addressPostcode: 'WRONG'
   }, employeeValidator);
 } catch (err) {
-  console.log(err.message);
+  console.log(err.toString());
 }
 
 // Outputs:
-// Assertion failed for addressPostcode:
-//   Failed regular expression: /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
+// Validation failed for $root.addressPostcode: Failed regular expression /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
 
 ```
 
@@ -86,6 +85,16 @@ This library provides a number of strongly-typed assertions which can be combine
 An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex values to be validated.
 
 Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(0))`.
+
+## Handling Validation Errors ##
+
+Errors will always be of the type `ValidationError`, which has a number of useful properties:
+
+- `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
+- `message`: A human-readable error message, with more information as to why the validation failed
+- `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
+
+There's a `toString` method which prints this information in a human-readable format.
 
 ## Documentation ##
 
