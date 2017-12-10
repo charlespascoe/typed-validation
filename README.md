@@ -118,7 +118,8 @@ const fooValidator: Validator<IFoo> = {
 
 const fooValidator: Validator<IFoo> = {
   bar: assertThat('bar', isString()),
-  baz: assertThat('baz', isNumber())
+  baz: assertThat('baz', isNumber()),
+  blah: assertThat('blah', isBoolean()) // Unexpected property
 };
 
 ```
@@ -152,7 +153,7 @@ const barValidator: Validator<IBar> = extendValidator(fooValidator, {
 Checks that `arg` conforms to the type `T` using the given `validator`. Returns an object that conforms to `T` or throws an error.
 
 ### assertThat ###
-Used to start an assertion within a validator.
+Used to start an assertion chain.
 
 ### optional ###
 Used when the property may not present on the object, or its value is undefined. Example:
