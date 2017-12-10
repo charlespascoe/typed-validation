@@ -209,7 +209,7 @@ export function matches(regex: RegExp): (arg: string) => string;
 export function matches<T=string>(regex: RegExp, next: (arg: string) => T): (arg: string) => T;
 export function matches(regex: RegExp, next?: (arg: string) => any): (arg: string) => any {
   return (arg: string) => {
-    if (!regex.test(arg)) throw new ValidationError('FAILED_REGEXP', `Failed regular expression: ${regex.toString()}`);
+    if (!regex.test(arg)) throw new ValidationError('FAILED_REGEXP', `Failed regular expression ${regex.toString()}`);
     return next ? next(arg) : arg;
   };
 }
