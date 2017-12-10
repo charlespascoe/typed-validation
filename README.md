@@ -1,3 +1,7 @@
+[![npm](https://img.shields.io/npm/v/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
+[![npm](https://img.shields.io/npm/dt/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
+[![npm](https://img.shields.io/npm/l/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
+
 # Validate Objects Against TypeScript Interfaces #
 
 - [Installation](#installation)
