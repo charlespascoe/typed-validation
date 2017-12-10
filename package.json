@@ -14,6 +14,13 @@
     "type": "git",
     "url": "git+https://github.com/cpascoe95/validate-interface.git"
   },
+  "keywords": [
+    "typed",
+    "typescript",
+    "validate",
+    "validation",
+    "interface"
+  ],
   "author": "Charles Pascoe <charles@cpascoe.co.uk>",
   "license": "LGPL-3.0",
   "bugs": {
