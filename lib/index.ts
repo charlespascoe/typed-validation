@@ -255,9 +255,11 @@ export function isArray(next?: (arg: any[]) => any): (arg: any) => any {
 }
 
 
-export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
+export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[];
+export function eachItem<T,U>(assertion: (arg: any) => T, next: (arg: T[]) => U): (arg: any[]) => U;
+export function eachItem<T>(assertion: (arg: any) => T, next?: (arg: any[]) => any): (arg: any[]) => any {
   return (arg: any[]) => {
-    return arg.map((item, index) => {
+    const mapped = arg.map((item, index) => {
       try {
         return assertion(item);
       } catch (err) {
@@ -269,6 +271,8 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[] {
         }
       }
     });
+
+    return next ? next(mapped) : mapped;
   }
 }
 
