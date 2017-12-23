@@ -4,6 +4,8 @@
 
 # Validate Objects Against TypeScript Interfaces #
 
+Builds strongly-typed validators that can prove to the TypeScript compiler that a given object conforms to a TypeScript interface.
+
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Assertions](#assertions)
@@ -12,7 +14,6 @@
     - [Validator](#validator)
     - [extendValidator](#extendvalidator)
     - [validate](#validate)
-    - [assertThat](#assertthat)
     - [optional](#optional)
     - [nullable](#nullable)
     - [defaultsTo](#defaultsto)
@@ -49,10 +50,10 @@ interface Employee {
 
 // 2) Define a schema
 const employeeValidator: Validator<Employee> = {
-  name: assertThat('name', isString(minLength(1))),
-  roleCode: assertThat('roleCode', isNumber(min(1, max(10)))),
-  completedTraining: assertThat('completedTraining', optional(isBoolean())),
-  addressPostcode: assertThat('addressPostcode', isString(matches(/^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i)))
+  name: isString(minLength(1)),
+  roleCode: isNumber(min(1, max(10))),
+  completedTraining: optional(isBoolean()),
+  addressPostcode: isString(matches(/^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i))
 };
 
 // 3) Validate
@@ -68,7 +69,7 @@ try {
   let wrong: Employee = validate({
     name: 'Name',
     roleCode: 4,
-    completedTraining: false,
+    completedTraining: 'false',
     addressPostcode: 'WRONG'
   }, employeeValidator);
 } catch (err) {
@@ -76,26 +77,30 @@ try {
 }
 
 // Outputs:
-// Validation failed for $root.addressPostcode: Failed regular expression /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
+// 2 validation errors:
+//   $root.completedTraining: Expected boolean, got string
+//   $root.addressPostcode: Failed regular expression /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
 
 ```
 
 ## Assertions ##
 This library provides a number of strongly-typed assertions which can be combined to validate the type of each property.
 
-An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex values to be validated.
+An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation.
 
-Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(0))`.
+Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(1))`.
 
 ## Handling Validation Errors ##
 
-Errors will always be of the type `ValidationError`, which has a number of useful properties:
+Errors will always be of the type `ValidationErrorCollection`, which has a property `error: ValidationError[]`.
+
+The `ValidationError` type has a number of useful properties:
 
 - `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
 - `message`: A human-readable error message, with more information as to why the validation failed
 - `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
 
-There's a `toString` method which prints this information in a human-readable format.
+The `ValidationErrorCollection.toString()` method prints this information in a human-readable format. The name of the root object defaults to `$root`, but this can be changed by passing a string, e.g. `err.toString('this')`.
 
 ## Documentation ##
 
@@ -111,25 +116,25 @@ interface IFoo {
 
 // A valid validator
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isString()),
-  baz: assertThat('baz', isNumber())
+  bar: isString(),
+  baz: isNumber()
 };
 
 // All of these are invalid, and will result in an error from the TypeScript compiler
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isString())
+  bar: isString()
 }; // Missing 'baz'
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isNumber()), // Wrong type
-  baz: assertThat('baz', isNumber())
+  bar: isNumber(), // Wrong type
+  baz: isNumber()
 };
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isString()),
-  baz: assertThat('baz', isNumber()),
-  blah: assertThat('blah', isBoolean()) // Unexpected property
+  bar: isString(),
+  baz: isNumber(),
+  blah: isBoolean() // Unexpected property
 };
 
 ```
@@ -145,7 +150,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  abc: assertThat('abc', isNumber())
+  abc: isNumber()
 };
 
 interface IBar extends IFoo {
@@ -153,7 +158,7 @@ interface IBar extends IFoo {
 }
 
 const barValidator: Validator<IBar> = extendValidator(fooValidator, {
-  xyz: assertThat('xyz', isString())
+  xyz: isString()
 });
 ```
 
@@ -161,9 +166,6 @@ const barValidator: Validator<IBar> = extendValidator(fooValidator, {
 `function validate<T>(arg: any, validator: Validator<T>): Validated<T>`
 
 Checks that `arg` conforms to the type `T` using the given `validator`. Returns an object that conforms to `T` or throws an error.
-
-### assertThat ###
-Used to start an assertion chain.
 
 ### optional ###
 Used when the property may not present on the object, or its value is undefined. Example:
@@ -174,7 +176,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', optional(isString())),
+  bar: optional(isString()),
 };
 
 // Both of these are acceptable
@@ -202,7 +204,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', nullable(isString())),
+  bar: nullable(isString()),
 };
 ```
 
@@ -216,7 +218,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', defaultsTo('baz', isString())),
+  bar: defaultsTo('baz', isString()),
 };
 
 const foo = validate({}, fooValidator);
@@ -236,7 +238,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', onErrorDefaultsTo('baz', isString())),
+  bar: onErrorDefaultsTo('baz', isString()),
 };
 
 const foo = validate({bar: 123}, fooValidator);
@@ -244,6 +246,7 @@ const foo = validate({bar: 123}, fooValidator);
 console.log(foo);
 // {bar: 'baz'}
 ```
+
 ### isBoolean ###
 Throws an error if the value is not a boolean.
 
@@ -259,7 +262,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isNuber(min(0)))
+  bar: isNuber(min(0))
 };
 
 // This will throw an error
@@ -281,7 +284,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isStirng(matches(/^[a-z]+$/)))
+  bar: isStirng(matches(/^[a-z]+$/))
 };
 
 // This will throw an error
@@ -297,7 +300,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isStirng(minLength(1)))
+  bar: isStirng(minLength(1))
 };
 
 // This will throw an error
@@ -319,7 +322,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isArray())
+  bar: isArray()
 };
 
 // This is valid
@@ -342,7 +345,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isArray(eachItem(isNumber())))
+  bar: isArray(eachItem(isNumber()))
 };
 
 // This is valid
@@ -365,7 +368,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', isObject())
+  bar: isObject()
 };
 
 // This is valid, but it wouldn't be safe to access properties on foo.bar
@@ -392,11 +395,11 @@ interface IFoo {
 }
 
 const barValidator: Validator<IBar> = {
-  baz: assertThat('baz', isNumber())
+  baz: isNumber()
 };
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', conformsTo(barValidator))
+  bar: conformsTo(barValidator)
 };
 
 // This is valid
@@ -425,7 +428,7 @@ interface IFoo {
 }
 
 const fooValidator: Validator<IFoo> = {
-  bar: assertThat('bar', equals<Bar>('A', 'B', 'C'))
+  bar: equals<Bar>('A', 'B', 'C')
 };
 
 // Throws an error
