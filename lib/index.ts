@@ -13,21 +13,6 @@ export interface ILength {
 }
 
 
-export type ErrorCode = 'UNHANDLED_ERROR'
-  | 'NOT_OBJECT'
-  | 'NOT_BOOLEAN'
-  | 'NOT_NUMBER'
-  | 'LESS_THAN_MIN'
-  | 'GREATER_THAN_MAX'
-  | 'NOT_STRING'
-  | 'FAILED_REGEXP'
-  | 'LESS_THAN_MIN_LENGTH'
-  | 'GREATER_THAN_MAX_LENGTH'
-  | 'LENGTH_NOT_EQUAL'
-  | 'NOT_ARRAY'
-  | 'NOT_EQUAL';
-
-
 export abstract class PathNode {  }
 
 
@@ -59,7 +44,7 @@ export class ArrayIndexPathNode extends PathNode {
 
 export class ValidationError {
   constructor(
-    public readonly errorCode: ErrorCode,
+    public readonly errorCode: string,
     public readonly message: string,
     public readonly path: PathNode[] = []
   ) { }
@@ -107,7 +92,7 @@ export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: a
         err.path.unshift(new KeyPathNode(name));
         throw err;
       } else {
-        throw new ValidationError('UNHANDLED_ERROR', `${err.message || 'Unknown error'}`, [new KeyPathNode(name)]);
+        throw new ValidationError('UNHANDLED_ERROR', `${typeof err === 'object' && err.message || 'Unknown error'}`, [new KeyPathNode(name)]);
       }
     }
   };
@@ -267,7 +252,7 @@ export function eachItem<T>(assertion: (arg: any) => T, next?: (arg: any[]) => a
           err.path.unshift(new ArrayIndexPathNode(index));
           throw err;
         } else {
-          throw new ValidationError('UNHANDLED_ERROR', `${err.message || 'Unknown error'}`, [new ArrayIndexPathNode(name)]);
+          throw new ValidationError('UNHANDLED_ERROR', `${typeof err === 'object' && err.message || 'Unknown error'}`, [new ArrayIndexPathNode(index)]);
         }
       }
     });
