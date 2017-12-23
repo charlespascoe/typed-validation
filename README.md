@@ -6,32 +6,6 @@
 
 Builds strongly-typed validators that can prove to the TypeScript compiler that a given object conforms to a TypeScript interface.
 
-- [Installation](#installation)
-- [Basic Usage](#basic-usage)
-- [Documentation](#documentation)
-    - [Validator](#validator)
-    - [extendValidator](#extendvalidator)
-    - [validate](#validate)
-    - [optional](#optional)
-    - [nullable](#nullable)
-    - [defaultsTo](#defaultsto)
-    - [onErrorDefaultsTo](#onerrordefaultsto)
-    - [isBoolean](#isboolean)
-    - [isNumber](#isnumber)
-    - [min](#min)
-    - [max](#max)
-    - [isString](#isstring)
-    - [matches](#matches)
-    - [minLength](#minLength)
-    - [maxLength](#maxLength)
-    - [lengthIs](#lengthis)
-    - [isArray](#isarray)
-    - [eachItem](#eachitem)
-    - [isObject](#isobject)
-    - [conformsTo](#conformsto)
-    - [equals](#equals)
-- [Handling Validation Errors](#handling-validation-errors)
-
 ## Installation ##
 
 `$ npm install --save validate-interface`
@@ -88,6 +62,30 @@ This library provides a number of strongly-typed assertions which can be combine
 An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation.
 
 Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(1))`.
+
+Jump to section:
+- [Validator](#validator)
+- [extendValidator](#extendvalidator)
+- [validate](#validate)
+- [optional](#optional)
+- [nullable](#nullable)
+- [defaultsTo](#defaultsto)
+- [onErrorDefaultsTo](#onerrordefaultsto)
+- [isBoolean](#isboolean)
+- [isNumber](#isnumber)
+- [min](#min)
+- [max](#max)
+- [isString](#isstring)
+- [matches](#matches)
+- [minLength](#minLength)
+- [maxLength](#maxLength)
+- [lengthIs](#lengthis)
+- [isArray](#isarray)
+- [eachItem](#eachitem)
+- [isObject](#isobject)
+- [conformsTo](#conformsto)
+- [equals](#equals)
+- [Handling Validation Errors](#handling-validation-errors)
 
 ### Validator ###
 
@@ -422,7 +420,7 @@ validate({
 }, fooValidator);
 ```
 
-## Handling Validation Errors ##
+### Handling Validation Errors ###
 
 Errors will always be of the type `ValidationErrorCollection`, which has a property `error: ValidationError[]`.
 
