@@ -8,8 +8,6 @@ Builds strongly-typed validators that can prove to the TypeScript compiler that 
 
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
-- [Assertions](#assertions)
-- [Handling Validation Errors](#handling-validation-errors)
 - [Documentation](#documentation)
     - [Validator](#validator)
     - [extendValidator](#extendvalidator)
@@ -32,6 +30,7 @@ Builds strongly-typed validators that can prove to the TypeScript compiler that 
     - [isObject](#isobject)
     - [conformsTo](#conformsto)
     - [equals](#equals)
+- [Handling Validation Errors](#handling-validation-errors)
 
 ## Installation ##
 
@@ -83,26 +82,12 @@ try {
 
 ```
 
-## Assertions ##
+## Documentation ##
 This library provides a number of strongly-typed assertions which can be combined to validate the type of each property.
 
 An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation.
 
 Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(1))`.
-
-## Handling Validation Errors ##
-
-Errors will always be of the type `ValidationErrorCollection`, which has a property `error: ValidationError[]`.
-
-The `ValidationError` type has a number of useful properties:
-
-- `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
-- `message`: A human-readable error message, with more information as to why the validation failed
-- `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
-
-The `ValidationErrorCollection.toString()` method prints this information in a human-readable format. The name of the root object defaults to `$root`, but this can be changed by passing a string, e.g. `err.toString('this')`.
-
-## Documentation ##
 
 ### Validator ###
 
@@ -436,3 +421,15 @@ validate({
   bar: 'D'
 }, fooValidator);
 ```
+
+## Handling Validation Errors ##
+
+Errors will always be of the type `ValidationErrorCollection`, which has a property `error: ValidationError[]`.
+
+The `ValidationError` type has a number of useful properties:
+
+- `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
+- `message`: A human-readable error message, with more information as to why the validation failed
+- `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
+
+The `ValidationErrorCollection.toString()` method prints this information in a human-readable format. The name of the root object defaults to `$root`, but this can be changed by passing a string, e.g. `err.toString('this')`.
