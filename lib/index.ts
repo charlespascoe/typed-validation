@@ -13,21 +13,6 @@ export interface ILength {
 }
 
 
-export type ErrorCode = 'UNHANDLED_ERROR'
-  | 'NOT_OBJECT'
-  | 'NOT_BOOLEAN'
-  | 'NOT_NUMBER'
-  | 'LESS_THAN_MIN'
-  | 'GREATER_THAN_MAX'
-  | 'NOT_STRING'
-  | 'FAILED_REGEXP'
-  | 'LESS_THAN_MIN_LENGTH'
-  | 'GREATER_THAN_MAX_LENGTH'
-  | 'LENGTH_NOT_EQUAL'
-  | 'NOT_ARRAY'
-  | 'NOT_EQUAL';
-
-
 export abstract class PathNode {  }
 
 
@@ -58,59 +43,95 @@ export class ArrayIndexPathNode extends PathNode {
 
 
 export class ValidationError {
+  public readonly path: PathNode[] = [];
+
   constructor(
-    public readonly errorCode: ErrorCode,
-    public readonly message: string,
-    public readonly path: PathNode[] = []
+    public readonly errorCode: string,
+    public readonly message: string
   ) { }
 
-  public toString(): string {
-    return `Validation failed for $root${this.path.map(node => node.toString()).join('')}: ${this.message}`;
+  public toString(root: string = '$root'): string {
+    return `${this.pathString(root)}: ${this.message}`;
+  }
+
+  public pathString(root: string = '$root'): string {
+    return root + this.path.map(node => node.toString()).join('');
+  }
+}
+
+
+export class ValidationErrorCollection {
+  public readonly errors: ValidationError[] = [];
+
+  constructor(error?: ValidationError) {
+    if (error) {
+      this.errors.push(error);
+    }
+  }
+
+  public insertError(node: PathNode, error: ValidationError) {
+    error.path.unshift(node);
+    this.errors.push(error);
+  }
+
+  public handleError(node: PathNode, err: any) {
+    if (err instanceof ValidationErrorCollection) {
+      for (const error of err.errors) {
+        this.insertError(node, error);
+      }
+    } else if (err instanceof ValidationError) {
+      this.insertError(node, err);
+    } else {
+      this.insertError(
+        node,
+        new ValidationError('UNHANDLED_ERROR', `${typeof err === 'object' && err.message || 'Unknown error'}`)
+      );
+    }
+  }
+
+  public toString(root: string = '$root'): string {
+    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n  ${this.errors.map(error => error.toString(root)).join('\n  ')}`;
   }
 }
 
 
 export function validate<T>(arg: any, validator: Validator<T>): Validated<T> {
-  if (typeof arg !== 'object') throw new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`);
+  if (typeof arg !== 'object') throw new ValidationErrorCollection(new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`));
 
-  let result: {[key in keyof T]?: T[key]} = {};
+  const result: {[key in keyof T]?: T[key]} = {};
 
-  for (let key in validator) {
-    result[key] = validator[key](arg[key]);
+  let validationErrorCollection: ValidationErrorCollection | null = null;
+
+  for (const key in validator) {
+    try {
+      result[key] = validator[key](arg[key]);
+    } catch (err) {
+      if (validationErrorCollection === null) {
+        validationErrorCollection = new ValidationErrorCollection();
+      }
+
+      validationErrorCollection.handleError(new KeyPathNode(key), err);
+    }
   }
+
+  if (validationErrorCollection !== null) throw validationErrorCollection;
 
   return result as Validated<T>;
 }
 
 
 export function extendValidator<T,U>(validator1: Validator<T>, validator2: Validator<U>): Validator<T & U> {
-  let result: any = {};
+  const result: any = {};
 
-  for (let key in validator1) {
+  for (const key in validator1) {
     result[key] = validator1[key];
   }
 
-  for (let key in validator2) {
+  for (const key in validator2) {
     result[key] = validator2[key];
   }
 
   return result as Validator<T & U>;
-}
-
-
-export function assertThat<T>(name: string, assertion: (arg: any) => T): (arg: any) => T {
-  return (arg: any) => {
-    try {
-      return assertion(arg);
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        err.path.unshift(new KeyPathNode(name));
-        throw err;
-      } else {
-        throw new ValidationError('UNHANDLED_ERROR', `${err.message || 'Unknown error'}`, [new KeyPathNode(name)]);
-      }
-    }
-  };
 }
 
 
@@ -259,18 +280,21 @@ export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[];
 export function eachItem<T,U>(assertion: (arg: any) => T, next: (arg: T[]) => U): (arg: any[]) => U;
 export function eachItem<T>(assertion: (arg: any) => T, next?: (arg: any[]) => any): (arg: any[]) => any {
   return (arg: any[]) => {
+    let validationErrorCollection: ValidationErrorCollection | null = null;
+
     const mapped = arg.map((item, index) => {
       try {
         return assertion(item);
       } catch (err) {
-        if (err instanceof ValidationError) {
-          err.path.unshift(new ArrayIndexPathNode(index));
-          throw err;
-        } else {
-          throw new ValidationError('UNHANDLED_ERROR', `${err.message || 'Unknown error'}`, [new ArrayIndexPathNode(name)]);
+        if (validationErrorCollection === null) {
+          validationErrorCollection = new ValidationErrorCollection();
         }
+
+        validationErrorCollection.handleError(new ArrayIndexPathNode(index), err);
       }
     });
+
+    if (validationErrorCollection !== null) throw validationErrorCollection;
 
     return next ? next(mapped) : mapped;
   }
