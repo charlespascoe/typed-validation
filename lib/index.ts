@@ -95,14 +95,30 @@ export class ValidationErrorCollection {
 }
 
 
-export function validate<T>(arg: any, validator: Validator<T>): Validated<T> {
+export interface IValidationOptions {
+  allowAdditionalProperties?: boolean;
+}
+
+
+export function validate<T>(arg: any, validator: Validator<T>, options: IValidationOptions = {}): Validated<T> {
+  const {
+    allowAdditionalProperties = true
+  } = options;
+
   if (typeof arg !== 'object') throw new ValidationErrorCollection(new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`));
 
   const result: {[key in keyof T]?: T[key]} = {};
 
   let validationErrorCollection: ValidationErrorCollection | null = null;
 
+  const validatedProperties = Object.keys(arg).reduce((validatedProperties, key) => {
+    validatedProperties[key] = false;
+    return validatedProperties;
+  }, {} as {[key: string]: boolean});
+
   for (const key in validator) {
+    validatedProperties[key] = true;
+
     try {
       result[key] = validator[key](arg[key]);
     } catch (err) {
@@ -112,6 +128,16 @@ export function validate<T>(arg: any, validator: Validator<T>): Validated<T> {
 
       validationErrorCollection.handleError(new KeyPathNode(key), err);
     }
+  }
+
+  if (!allowAdditionalProperties && !Object.keys(validatedProperties).every(key => validatedProperties[key])) {
+    if (validationErrorCollection === null) {
+      validationErrorCollection = new ValidationErrorCollection();
+    }
+
+    validationErrorCollection.errors.push(
+      new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional properties: ${Object.keys(validatedProperties).filter(key => !validatedProperties[key]).join(', ')}`)
+    );
   }
 
   if (validationErrorCollection !== null) throw validationErrorCollection;
