@@ -22,7 +22,7 @@ export class KeyPathNode extends PathNode {
   }
 
   public toString(): string {
-    if (/^[$a-z_]+$/i.test(this.key)) {
+    if (/^[$a-z_][$a-z0-9_]*$/i.test(this.key)) {
       return `.${this.key}`;
     } else {
       return `['${this.key.replace('\\', '\\\\').replace("'", "\\'")}']`;
