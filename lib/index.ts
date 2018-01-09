@@ -338,10 +338,17 @@ export function isObject(next?: (arg: any) => any): (arg: any) => any {
 
 
 export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
+export function conformsTo<T>(validator: Validator<T>, options: IValidationOptions): (arg: any) => Validated<T>;
 export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
-export function conformsTo<T>(validator: Validator<T>, next?: (arg: Validated<T>) => any): (arg: any) => any {
+export function conformsTo<T,U>(validator: Validator<T>, options: IValidationOptions, next: (arg: Validated<T>) => U): (arg: any) => U;
+export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidationOptions | ((arg: Validated<T>) => any), next?: (arg: Validated<T>) => any): (arg: any) => any {
   return (arg: any) => {
-    let validated = validate(arg, validator);
+    if (typeof optionsOrNext === 'function') {
+      next = optionsOrNext;
+    }
+
+    const validated = validate(arg, validator, typeof optionsOrNext === 'object' ? optionsOrNext : undefined);
+
     return next ? next(validated) : validated;
   };
 }
