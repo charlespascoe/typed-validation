@@ -146,9 +146,13 @@ const barValidator: Validator<IBar> = extendValidator(fooValidator, {
 ```
 
 ### validate ###
-`function validate<T>(arg: any, validator: Validator<T>): Validated<T>`
+`function validate<T>(arg: any, validator: Validator<T>, options?: IValidationOptions): Validated<T>`
 
 Checks that `arg` conforms to the type `T` using the given `validator`. Returns an object that conforms to `T` or throws an error.
+
+The third argument is an optional object of options:
+
+- `allowAdditionalProperties: boolean` - If false, an error is thrown if there are any properties in addition to the ones defined in the validator. Defaults to `true`, which removes additional properties from the result.
 
 ### optional ###
 Used when the property may not present on the object, or its value is undefined. Example:
@@ -422,7 +426,7 @@ validate({
 
 ### Handling Validation Errors ###
 
-Errors will always be of the type `ValidationErrorCollection`, which has a property `error: ValidationError[]`.
+Errors will always be of the type `ValidationErrorCollection`, which has a property `errors: ValidationError[]`.
 
 The `ValidationError` type has a number of useful properties:
 
