@@ -3,6 +3,7 @@
 [![npm](https://img.shields.io/npm/l/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
 
 # Strongly-Typed Validators for TypeScript
+*(Formerly `validate-interface`)*
 
 Build strongly-typed validators that TypeScript can understand, so that TypeScript can validate that your validator is correct.
 
