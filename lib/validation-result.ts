@@ -43,11 +43,11 @@ export class ValidationError {
     return this;
   }
 
-  public toString(root: string = '$root'): string {
+  public toString(root: string = '$'): string {
     return `${this.pathString(root)}: ${this.message}`;
   }
 
-  public pathString(root: string = '$root'): string {
+  public pathString(root: string = '$'): string {
     return root + this.path.map(node => node.toString()).join('');
   }
 }
@@ -74,7 +74,7 @@ export class ErrorResult {
     return this;
   }
 
-  public toString(root: string = '$root'): string {
+  public toString(root: string = '$'): string {
     return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n  ${this.errors.map(error => error.toString(root)).join('\n  ')}`;
   }
 
@@ -86,7 +86,7 @@ export class ErrorResult {
 
 export interface SuccessResult<T> {
   readonly success: true;
-  readonly result: T;
+  readonly value: T;
 }
 
 
@@ -100,6 +100,6 @@ export function errorFromException(err: any): ErrorResult {
 }
 
 
-export function success<T>(result: T): SuccessResult<T> {
-  return {success: true, result};
+export function success<T>(value: T): SuccessResult<T> {
+  return {success: true, value};
 }
