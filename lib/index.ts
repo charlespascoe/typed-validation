@@ -321,3 +321,31 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?
     )(arg);
   };
 }
+
+
+function either<A,B>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>): (arg: any) => ValidationResult<A | B>;
+function either<A,B,C>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>): (arg: any) => ValidationResult<A | B | C>;
+function either<A,B,C,D>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>): (arg: any) => ValidationResult<A | B | C | D>;
+function either<A,B,C,D,E>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>): (arg: any) => ValidationResult<A | B | C | D | E>;
+function either<A,B,C,D,E,F>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>): (arg: any) => ValidationResult<A | B | C | D | E | F>;
+function either<A,B,C,D,E,F,G>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>): (arg: any) => ValidationResult<A | B | C | D | E | F | G>;
+function either<A,B,C,D,E,F,G,H>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H>;
+function either<A,B,C,D,E,F,G,H,I>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>, assertion9: (arg: any) => ValidationResult<I>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H | I>;
+function either<A,B,C,D,E,F,G,H,I,J>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>, assertion9: (arg: any) => ValidationResult<I>, assertion10: (arg: any) => ValidationResult<J>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H | I | J>;
+function either(...assertions: Array<(arg: any) => any>): (arg: any) => any {
+  return (arg: any) => {
+    let errors: ValidationError[] = [];
+
+    for (const assertion of assertions) {
+      const result = assertion(arg);
+
+      if (result.success) {
+        return result;
+      }
+
+      errors = errors.concat(result.errors);
+    }
+
+    return error('NO_MATCH', 'No match found - the following assertions failed:\n    ' + errors.map(error => error.toString()).join('\n    '));
+  };
+}
