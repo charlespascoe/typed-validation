@@ -2,9 +2,9 @@
 [![npm](https://img.shields.io/npm/dt/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
 [![npm](https://img.shields.io/npm/l/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
 
-# Validate Objects Against TypeScript Interfaces #
+# Strongly-Typed Validators for TypeScript
 
-Builds strongly-typed validators that can prove to the TypeScript compiler that a given object conforms to a TypeScript interface.
+Build strongly-typed validators that TypeScript can understand, so that TypeScript can validate that your validator is correct.
 
 ## Installation ##
 
@@ -12,8 +12,10 @@ Builds strongly-typed validators that can prove to the TypeScript compiler that 
 
 ## Basic Usage ##
 
+**Example:** check that a value of type `any` (perhaps from an untrusted source, such as a file) is an object that conforms to an interface called `Employee`:
+
 ```ts
-// 1) Define an interface
+// 1) Define the interface
 interface Employee {
   name: string;
   roleCode: number;
@@ -21,7 +23,7 @@ interface Employee {
   addressPostcode: string;
 }
 
-// 2) Define a schema
+// 2) Define the validator
 const employeeValidator: Validator<Employee> = {
   name: isString(minLength(1)),
   roleCode: isNumber(min(1, max(10))),
@@ -30,16 +32,19 @@ const employeeValidator: Validator<Employee> = {
 };
 
 // 3) Validate
-let bob: Employee = validate({
+
+const unsafeObject: any = {
   name: 'Bob Smith',
   roleCode: 7,
   completedTraining: true,
   addressPostcode: 'AB1 2CD'
-}, employeeValidator);
+};
+
+const bob: Employee = validate(unsafeObject, employeeValidator);
 
 // Catch and log error messages
 try {
-  let wrong: Employee = validate({
+  const wrong: Employee = validate({
     name: 'Name',
     roleCode: 4,
     completedTraining: 'false',
@@ -57,9 +62,9 @@ try {
 ```
 
 ## Documentation ##
-This library provides a number of strongly-typed assertions which can be combined to validate the type of each property.
+Validators are built by combining simple assertions using function composition and higher-order functions. For example, the `isString()` assertion returns a function which accepts a single argument of type `any` and returns a `string`. If the argument is a string, it returns the string. If the argument is not a string, it throws an error. This module provides a number of assertions, described below.
 
-An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation.
+An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation of types and values.
 
 Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(1))`.
 
