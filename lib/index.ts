@@ -100,49 +100,14 @@ export interface IValidationOptions {
 }
 
 
-export function validate<T>(arg: any, validator: Validator<T>, options: IValidationOptions = {}): Validated<T> {
-  const {
-    allowAdditionalProperties = true
-  } = options;
-
-  if (typeof arg !== 'object') throw new ValidationErrorCollection(new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`));
-
-  const result: {[key in keyof T]?: T[key]} = {};
-
-  let validationErrorCollection: ValidationErrorCollection | null = null;
-
-  const validatedProperties = Object.keys(arg).reduce((validatedProperties, key) => {
-    validatedProperties[key] = false;
-    return validatedProperties;
-  }, {} as {[key: string]: boolean});
-
-  for (const key in validator) {
-    validatedProperties[key] = true;
-
-    try {
-      result[key] = validator[key](arg[key]);
-    } catch (err) {
-      if (validationErrorCollection === null) {
-        validationErrorCollection = new ValidationErrorCollection();
-      }
-
-      validationErrorCollection.handleError(new KeyPathNode(key), err);
-    }
+export function validate<T>(arg: any, assertion: (arg: any) => T): T {
+  try {
+    return assertion(arg);
+  } catch (err) {
+    if (err instanceof ValidationErrorCollection) throw err;
+    if (err instanceof ValidationError) throw new ValidationErrorCollection(err);
+    throw new ValidationErrorCollection(new ValidationError('UNHANDLED_ERROR', `${typeof err === 'object' && err.message || 'Unknown error'}`));
   }
-
-  if (!allowAdditionalProperties && !Object.keys(validatedProperties).every(key => validatedProperties[key])) {
-    if (validationErrorCollection === null) {
-      validationErrorCollection = new ValidationErrorCollection();
-    }
-
-    validationErrorCollection.errors.push(
-      new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional properties: ${Object.keys(validatedProperties).filter(key => !validatedProperties[key]).join(', ')}`)
-    );
-  }
-
-  if (validationErrorCollection !== null) throw validationErrorCollection;
-
-  return result as Validated<T>;
 }
 
 
@@ -162,6 +127,55 @@ export function extendValidator<T,U>(validator1: Validator<T>, validator2: Valid
 
 
 // ASSERTIONS //
+
+
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
+export function conformsTo<T>(validator: Validator<T>, options: IValidationOptions): (arg: any) => Validated<T>;
+export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
+export function conformsTo<T,U>(validator: Validator<T>, options: IValidationOptions, next: (arg: Validated<T>) => U): (arg: any) => U;
+export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidationOptions | ((arg: Validated<T>) => any), next?: (arg: Validated<T>) => any): (arg: any) => any {
+  return (arg: any) => {
+    const options: IValidationOptions = typeof optionsOrNext === 'object' ? optionsOrNext : {};
+    const nextAssertion: ((arg: Validated<T>) => any) | undefined = typeof optionsOrNext === 'function' ? optionsOrNext : next;
+    const {
+      allowAdditionalProperties = true
+    } = options;
+
+    if (typeof arg !== 'object') throw new ValidationErrorCollection(new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`));
+
+    const result: {[key in keyof T]?: T[key]} = {};
+
+    let validationErrorCollection: ValidationErrorCollection | null = null;
+
+    for (const key in validator) {
+      try {
+        result[key] = validator[key](arg[key]);
+      } catch (err) {
+        if (validationErrorCollection === null) {
+          validationErrorCollection = new ValidationErrorCollection();
+        }
+
+        validationErrorCollection.handleError(new KeyPathNode(key), err);
+      }
+    }
+
+    if (!allowAdditionalProperties && Object.keys(arg).some(key => !validator.hasOwnProperty(key))) {
+      if (validationErrorCollection === null) {
+        validationErrorCollection = new ValidationErrorCollection();
+      }
+
+      validationErrorCollection.errors.push(
+        new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional propertie(s): ${Object.keys(arg).filter(key => !validator.hasOwnProperty(key)).join(', ')}`)
+      );
+    }
+
+    if (validationErrorCollection !== null) throw validationErrorCollection;
+
+    const validated = result as Validated<T>;
+
+    return next ? next(validated) : validated;
+  };
+}
 
 
 export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined {
@@ -333,23 +347,6 @@ export function isObject(next?: (arg: any) => any): (arg: any) => any {
   return (arg: any) => {
     if (typeof arg !== 'object') throw new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`);
     return next ? next(arg) : arg;
-  };
-}
-
-
-export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
-export function conformsTo<T>(validator: Validator<T>, options: IValidationOptions): (arg: any) => Validated<T>;
-export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
-export function conformsTo<T,U>(validator: Validator<T>, options: IValidationOptions, next: (arg: Validated<T>) => U): (arg: any) => U;
-export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidationOptions | ((arg: Validated<T>) => any), next?: (arg: Validated<T>) => any): (arg: any) => any {
-  return (arg: any) => {
-    if (typeof optionsOrNext === 'function') {
-      next = optionsOrNext;
-    }
-
-    const validated = validate(arg, validator, typeof optionsOrNext === 'object' ? optionsOrNext : undefined);
-
-    return next ? next(validated) : validated;
   };
 }
 
