@@ -1,6 +1,6 @@
 {
-  "name": "validate-interface",
-  "version": "0.5.2",
+  "name": "typed-validation",
+  "version": "0.6.0",
   "description": "Validate Objects Against TypeScript Interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cpascoe95/validate-interface.git"
+    "url": "git+https://github.com/cpascoe95/typed-validation.git"
   },
   "keywords": [
     "typed",
@@ -24,9 +24,9 @@
   "author": "Charles Pascoe <charles@cpascoe.co.uk>",
   "license": "LGPL-3.0",
   "bugs": {
-    "url": "https://github.com/cpascoe95/validate-interface/issues"
+    "url": "https://github.com/cpascoe95/typed-validation/issues"
   },
-  "homepage": "https://github.com/cpascoe95/validate-interface#readme",
+  "homepage": "https://github.com/cpascoe95/typed-validation#readme",
   "devDependencies": {
     "typescript": "2.5.2"
   }

@@ -1,5 +1,20 @@
+import { keysOf, tryCatch } from './utils';
+import {
+  ArrayIndexPathNode,
+  error,
+  errorFromException,
+  ErrorResult,
+  SuccessResult,
+  KeyPathNode,
+  success,
+  ValidationError,
+  ValidationResult,
+} from './validation-result';
+export * from './validation-result';
+
+
 export type Validator<T> = {
-  [key in keyof T]: (arg: any) => T[key]
+  [key in keyof T]: (arg: any) => ValidationResult<T[key]>
 };
 
 
@@ -13,136 +28,16 @@ export interface ILength {
 }
 
 
-export abstract class PathNode {  }
-
-
-export class KeyPathNode extends PathNode {
-  constructor(public readonly key: string) {
-    super();
-  }
-
-  public toString(): string {
-    if (/^[$a-z_][$a-z0-9_]*$/i.test(this.key)) {
-      return `.${this.key}`;
-    } else {
-      return `['${this.key.replace('\\', '\\\\').replace("'", "\\'")}']`;
-    }
-  }
-}
-
-
-export class ArrayIndexPathNode extends PathNode {
-  constructor(public readonly index: number) {
-    super();
-  }
-
-  public toString(): string {
-    return `[${this.index}]`;
-  }
-}
-
-
-export class ValidationError {
-  public readonly path: PathNode[] = [];
-
-  constructor(
-    public readonly errorCode: string,
-    public readonly message: string
-  ) { }
-
-  public toString(root: string = '$root'): string {
-    return `${this.pathString(root)}: ${this.message}`;
-  }
-
-  public pathString(root: string = '$root'): string {
-    return root + this.path.map(node => node.toString()).join('');
-  }
-}
-
-
-export class ValidationErrorCollection {
-  public readonly errors: ValidationError[] = [];
-
-  constructor(error?: ValidationError) {
-    if (error) {
-      this.errors.push(error);
-    }
-  }
-
-  public insertError(node: PathNode, error: ValidationError) {
-    error.path.unshift(node);
-    this.errors.push(error);
-  }
-
-  public handleError(node: PathNode, err: any) {
-    if (err instanceof ValidationErrorCollection) {
-      for (const error of err.errors) {
-        this.insertError(node, error);
-      }
-    } else if (err instanceof ValidationError) {
-      this.insertError(node, err);
-    } else {
-      this.insertError(
-        node,
-        new ValidationError('UNHANDLED_ERROR', `${typeof err === 'object' && err.message || 'Unknown error'}`)
-      );
-    }
-  }
-
-  public toString(root: string = '$root'): string {
-    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n  ${this.errors.map(error => error.toString(root)).join('\n  ')}`;
-  }
-}
-
-
 export interface IValidationOptions {
   allowAdditionalProperties?: boolean;
 }
 
 
-export function validate<T>(arg: any, validator: Validator<T>, options: IValidationOptions = {}): Validated<T> {
-  const {
-    allowAdditionalProperties = true
-  } = options;
-
-  if (typeof arg !== 'object') throw new ValidationErrorCollection(new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`));
-
-  const result: {[key in keyof T]?: T[key]} = {};
-
-  let validationErrorCollection: ValidationErrorCollection | null = null;
-
-  const validatedProperties = Object.keys(arg).reduce((validatedProperties, key) => {
-    validatedProperties[key] = false;
-    return validatedProperties;
-  }, {} as {[key: string]: boolean});
-
-  for (const key in validator) {
-    validatedProperties[key] = true;
-
-    try {
-      result[key] = validator[key](arg[key]);
-    } catch (err) {
-      if (validationErrorCollection === null) {
-        validationErrorCollection = new ValidationErrorCollection();
-      }
-
-      validationErrorCollection.handleError(new KeyPathNode(key), err);
-    }
-  }
-
-  if (!allowAdditionalProperties && !Object.keys(validatedProperties).every(key => validatedProperties[key])) {
-    if (validationErrorCollection === null) {
-      validationErrorCollection = new ValidationErrorCollection();
-    }
-
-    validationErrorCollection.errors.push(
-      new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional properties: ${Object.keys(validatedProperties).filter(key => !validatedProperties[key]).join(', ')}`)
-    );
-  }
-
-  if (validationErrorCollection !== null) throw validationErrorCollection;
-
-  return result as Validated<T>;
+export function validate<T>(arg: any, assertion: (arg: any) => ValidationResult<T>): ValidationResult<T> {
+  return tryCatch(
+    () => assertion(arg),
+    (err) => errorFromException(err)
+  );
 }
 
 
@@ -164,203 +59,233 @@ export function extendValidator<T,U>(validator1: Validator<T>, validator2: Valid
 // ASSERTIONS //
 
 
-export function optional<T>(next: (arg: any) => T): (arg: any) => T | undefined {
+export function conformsTo<T>(validator: Validator<T>): (arg: any) => ValidationResult<Validated<T>>;
+export function conformsTo<T>(validator: Validator<T>, options: IValidationOptions): (arg: any) => ValidationResult<Validated<T>>;
+export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => ValidationResult<U>): (arg: any) => ValidationResult<U>;
+export function conformsTo<T,U>(validator: Validator<T>, options: IValidationOptions, next: (arg: Validated<T>) => ValidationResult<U>): (arg: any) => ValidationResult<U>;
+export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidationOptions | ((arg: Validated<T>) => ValidationResult<any>), next?: (arg: Validated<T>) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
+  return isObject((arg: any) => {
+    const options: IValidationOptions = typeof optionsOrNext === 'object' ? optionsOrNext : {};
+    const nextAssertion: ((arg: Validated<T>) => any) | undefined = typeof optionsOrNext === 'function' ? optionsOrNext : next;
+    const {
+      allowAdditionalProperties = true
+    } = options;
+
+    const partiallyValidated: {[key in keyof T]?: T[key]} = {};
+
+    const errors: ValidationError[] = keysOf(validator).reduce((errors, key) => {
+      const result = tryCatch(
+        () => validator[key](arg[key]),
+        (err) => errorFromException(err)
+      );
+
+      if (!result.success) {
+        return errors.concat(result.addPathNode(new KeyPathNode(key)).errors);
+      }
+
+      partiallyValidated[key] = result.result;
+      return errors;
+    }, [] as ValidationError[]);
+
+    if (!allowAdditionalProperties && keysOf(arg).some(key => !validator.hasOwnProperty(key))) {
+      errors.push(
+        new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional propertie(s): ${keysOf(arg).filter(key => !validator.hasOwnProperty(key)).join(', ')}`)
+      );
+    }
+
+    if (errors.length > 0) return new ErrorResult(errors);
+
+    const validated = partiallyValidated as Validated<T>;
+
+    return next ? next(validated) : success(validated);
+  });
+}
+
+
+export function optional<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | undefined> {
   return (arg: any) => {
-    if (arg === undefined) return undefined;
+    if (arg === undefined) return success(undefined);
     return next(arg);
   };
 }
 
 
-export function nullable<T>(next: (arg: any) => T): (arg: any) => T | null {
+export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null> {
   return (arg: any) => {
-    if (arg === null) return null;
+    if (arg === null) return success(null);
     return next(arg);
   };
 }
 
 
-export function defaultsTo(def: any): (arg: any) => any;
-export function defaultsTo<T>(def: T, next: (arg: any) => T): (arg: any) => T;
-export function defaultsTo(def: any, next?: (arg: any) => any): (arg: any) => any {
+export function defaultsTo(def: any): (arg: any) => ValidationResult<any>;
+export function defaultsTo<T>(def: T, next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function defaultsTo(def: any, next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
     if (arg === undefined) arg = def;
-    return next ? next(arg) : arg;
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => U): (arg: T) => U {
+export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U> {
   return (arg: T) => {
     try {
       return next(arg);
     } catch (_) {
       // Ignore error - resort to default
-      return def;
+      return success(def);
     }
   };
 }
 
 
-export function isBoolean(): (arg: any) => boolean;
-export function isBoolean<T=boolean>(next: (arg: boolean) => T): (arg: any) => T;
-export function isBoolean(next?: (arg: boolean) => any): (arg: any) => any {
+export function isBoolean(): (arg: any) => ValidationResult<boolean>;
+export function isBoolean<T=boolean>(next: (arg: boolean) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isBoolean(next?: (arg: boolean) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'boolean') throw new ValidationError('NOT_BOOLEAN', `Expected boolean, got ${typeof arg}`);
-    return next ? next(arg) : arg;
+    if (typeof arg !== 'boolean') return error('NOT_BOOLEAN', `Expected boolean, got ${typeof arg}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function isNumber(): (arg: any) => number;
-export function isNumber<T=number>(next: (arg: number) => T): (arg: any) => T;
-export function isNumber(next?: (arg: number) => any): (arg: any) => any {
+export function isNumber(): (arg: any) => ValidationResult<number>;
+export function isNumber<T=number>(next: (arg: number) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isNumber(next?: (arg: number) => any): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'number') throw new ValidationError('NOT_NUMBER', `Expected number, got ${typeof arg}`);
-    return next ? next(arg) : arg;
+    if (typeof arg !== 'number') return error('NOT_NUMBER', `Expected number, got ${typeof arg}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function min(min: number): (arg: number) => number;
-export function min<T=number>(min: number, next: (arg: number) => T): (arg: number) => T;
-export function min(min: number, next?: (arg: number) => any): (arg: number) => any {
+export function min(min: number): (arg: number) => ValidationResult<number>;
+export function min<T=number>(min: number, next: (arg: number) => ValidationResult<T>): (arg: number) => ValidationResult<T>;
+export function min(min: number, next?: (arg: number) => ValidationResult<any>): (arg: number) => ValidationResult<any> {
   return (arg: number) => {
-    if (arg < min) throw new ValidationError('LESS_THAN_MIN', `${arg} is less than ${min}`);
-    return next ? next(arg) : arg;
+    if (arg < min) return error('LESS_THAN_MIN', `${arg} is less than ${min}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function max(max: number): (arg: number) => number;
-export function max<T=number>(max: number, next: (arg: number) => T): (arg: number) => T;
-export function max(max: number, next?: (arg: number) => any): (arg: number) => any {
+export function max(max: number): (arg: number) => ValidationResult<number>;
+export function max<T=number>(max: number, next: (arg: number) => ValidationResult<T>): (arg: number) => ValidationResult<T>;
+export function max(max: number, next?: (arg: number) => ValidationResult<any>): (arg: number) => ValidationResult<any> {
   return (arg: number) => {
-    if (arg > max) throw new ValidationError('GREATER_THAN_MAX', `${arg} is greater than ${max}`);
-    return next ? next(arg) : arg;
+    if (arg > max) return error('GREATER_THAN_MAX', `${arg} is greater than ${max}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function isString(): (arg: any) => string;
-export function isString<T=string>(next: (arg: string) => T): (arg: any) => T;
-export function isString(next?: (arg: any) => any): (arg: any) => any {
+export function isString(): (arg: any) => ValidationResult<string>;
+export function isString<T=string>(next: (arg: string) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isString(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'string') throw new ValidationError('NOT_STRING', `Expected string, got ${typeof arg}`);
-    return next ? next(arg) : arg;
+    if (typeof arg !== 'string') return error('NOT_STRING', `Expected string, got ${typeof arg}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function matches(regex: RegExp): (arg: string) => string;
-export function matches<T=string>(regex: RegExp, next: (arg: string) => T): (arg: string) => T;
-export function matches(regex: RegExp, next?: (arg: string) => any): (arg: string) => any {
+export function matches(regex: RegExp): (arg: string) => ValidationResult<string>;
+export function matches<T=string>(regex: RegExp, next: (arg: string) => ValidationResult<T>): (arg: string) => ValidationResult<T>;
+export function matches(regex: RegExp, next?: (arg: string) => ValidationResult<any>): (arg: string) => ValidationResult<any> {
   return (arg: string) => {
-    if (!regex.test(arg)) throw new ValidationError('FAILED_REGEXP', `Failed regular expression ${regex.toString()}`);
-    return next ? next(arg) : arg;
+    if (!regex.test(arg)) return error('FAILED_REGEXP', `Failed regular expression ${regex.toString()}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function minLength<T extends ILength>(min: number): (arg: T) => T;
-export function minLength<T extends ILength,U=T>(min: number, next: (arg: T) => U): (arg: T) => U;
-export function minLength<T extends ILength>(min: number, next?: (arg: T) => any): (arg: T) => any {
+export function minLength<T extends ILength>(min: number): (arg: T) => ValidationResult<T>;
+export function minLength<T extends ILength,U=T>(min: number, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U>;
+export function minLength<T extends ILength>(min: number, next?: (arg: T) => ValidationResult<any>): (arg: T) => ValidationResult<any> {
   return (arg: T) => {
-    if (arg.length < min) throw new ValidationError('LESS_THAN_MIN_LENGTH', `Length ${arg.length} is less than ${min}`);
-    return next ? next(arg) : arg;
+    if (arg.length < min) return error('LESS_THAN_MIN_LENGTH', `Length ${arg.length} is less than ${min}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function maxLength<T extends ILength>(max: number): (arg: T) => T;
-export function maxLength<T extends ILength,U=T>(max: number, next: (arg: T) => U): (arg: T) => U;
-export function maxLength<T extends ILength>(max: number, next?: (arg: T) => any): (arg: T) => any {
+export function maxLength<T extends ILength>(max: number): (arg: T) => ValidationResult<T>;
+export function maxLength<T extends ILength,U=T>(max: number, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U>;
+export function maxLength<T extends ILength>(max: number, next?: (arg: T) => ValidationResult<any>): (arg: T) => ValidationResult<any> {
   return (arg: T) => {
-    if (arg.length > max) throw new ValidationError('GREATER_THAN_MAX_LENGTH', `Length ${arg.length} is greater than ${max}`);
-    return next ? next(arg) : arg;
+    if (arg.length > max) return error('GREATER_THAN_MAX_LENGTH', `Length ${arg.length} is greater than ${max}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function lengthIs<T extends ILength>(length: number): (arg: T) => T;
-export function lengthIs<T extends ILength,U=T>(length: number, next: (arg: T) => U): (arg: T) => U;
-export function lengthIs<T extends ILength>(length: number, next?: (arg: T) => any): (arg: T) => any {
+export function lengthIs<T extends ILength>(length: number): (arg: T) => ValidationResult<T>;
+export function lengthIs<T extends ILength,U=T>(length: number, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U>;
+export function lengthIs<T extends ILength>(length: number, next?: (arg: T) => ValidationResult<any>): (arg: T) => ValidationResult<any> {
   return (arg: T) => {
-    if (arg.length !== length) throw new ValidationError('LENGTH_NOT_EQUAL', `Length ${arg.length} is not equal to ${length}`);
-    return next ? next(arg) : arg;
+    if (arg.length !== length) return error('LENGTH_NOT_EQUAL', `Length ${arg.length} is not equal to ${length}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function isArray(): (arg: any) => any[];
-export function isArray<T>(next: (arg: any[]) => T): (arg: any) => T;
-export function isArray(next?: (arg: any[]) => any): (arg: any) => any {
+export function isArray(): (arg: any) => ValidationResult<any[]>;
+export function isArray<T>(next: (arg: any[]) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isArray(next?: (arg: any[]) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (!(arg instanceof Array)) throw new ValidationError('NOT_ARRAY', `Expected array, got ${typeof arg}`);
-    return next ? next(arg) : arg;
+    if (!(arg instanceof Array)) return error('NOT_ARRAY', `Expected array, got ${typeof arg}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function eachItem<T>(assertion: (arg: any) => T): (arg: any[]) => T[];
-export function eachItem<T,U>(assertion: (arg: any) => T, next: (arg: T[]) => U): (arg: any[]) => U;
-export function eachItem<T>(assertion: (arg: any) => T, next?: (arg: any[]) => any): (arg: any[]) => any {
+export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>): (arg: any[]) => ValidationResult<T[]>;
+export function eachItem<T,U>(assertion: (arg: any) => ValidationResult<T>, next: (arg: T[]) => ValidationResult<U>): (arg: any[]) => ValidationResult<U>;
+export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>, next?: (arg: any[]) => ValidationResult<any>): (arg: any[]) => ValidationResult<any> {
   return (arg: any[]) => {
-    let validationErrorCollection: ValidationErrorCollection | null = null;
+    const results = arg.map((item, index) => tryCatch(
+      () => assertion(item),
+      (err) => error('UNHANDLED_ERROR', `Unhandled error: ${typeof err === 'object' && err.message || 'Unknown error'}`)
+    ));
 
-    const mapped = arg.map((item, index) => {
-      try {
-        return assertion(item);
-      } catch (err) {
-        if (validationErrorCollection === null) {
-          validationErrorCollection = new ValidationErrorCollection();
-        }
+    if (results.some(ErrorResult.isErrorResult)) {
+      return new ErrorResult(
+        results
+          .map((item, index) => {
+            if (!item.success) item.addPathNode(new ArrayIndexPathNode(index));
+            return item;
+          })
+          .filter<ErrorResult>(ErrorResult.isErrorResult)
+          .reduce((errors, result) => errors.concat(result.errors), [] as ValidationError[])
+      );
+    }
 
-        validationErrorCollection.handleError(new ArrayIndexPathNode(index), err);
-      }
-    });
+    const mapped = (results as SuccessResult<T>[]).map(result => result.result);
 
-    if (validationErrorCollection !== null) throw validationErrorCollection;
-
-    return next ? next(mapped) : mapped;
-  }
-}
-
-
-export function isObject(): (arg: any) => any;
-export function isObject<T>(next: (arg: any) => T): (arg: any) => T;
-export function isObject(next?: (arg: any) => any): (arg: any) => any {
-  return (arg: any) => {
-    if (typeof arg !== 'object') throw new ValidationError('NOT_OBJECT', `Expected object, got ${typeof arg}`);
-    return next ? next(arg) : arg;
+    return next ? next(mapped) : success(mapped);
   };
 }
 
 
-export function conformsTo<T>(validator: Validator<T>): (arg: any) => Validated<T>;
-export function conformsTo<T>(validator: Validator<T>, options: IValidationOptions): (arg: any) => Validated<T>;
-export function conformsTo<T,U>(validator: Validator<T>, next: (arg: Validated<T>) => U): (arg: any) => U;
-export function conformsTo<T,U>(validator: Validator<T>, options: IValidationOptions, next: (arg: Validated<T>) => U): (arg: any) => U;
-export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidationOptions | ((arg: Validated<T>) => any), next?: (arg: Validated<T>) => any): (arg: any) => any {
+export function isObject(): (arg: any) => ValidationResult<any>;
+export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof optionsOrNext === 'function') {
-      next = optionsOrNext;
-    }
-
-    const validated = validate(arg, validator, typeof optionsOrNext === 'object' ? optionsOrNext : undefined);
-
-    return next ? next(validated) : validated;
+    if (typeof arg !== 'object') return error('NOT_OBJECT', `Expected object, got ${typeof arg}`);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function equals<T>(value: T, ...values: T[]): (arg: any) => T {
-  let vals = [value, ...values];
+export function equals<T>(value: T, ...values: T[]): (arg: any) => ValidationResult<T> {
+  const vals = [value, ...values];
+
   return (arg: any) => {
-    for (let val of vals) {
-      if (val === arg) return arg;
+    for (const val of vals) {
+      if (val === arg) return success(arg);
     }
 
-    throw new ValidationError('NOT_EQUAL', vals.length === 1 ? `'${arg}' does not equal '${vals[0]}'` : `'${arg}' not one of: ${vals.join(', ')}`);
+    return error('NOT_EQUAL', vals.length === 1 ? `'${arg}' does not equal '${vals[0]}'` : `'${arg}' not one of: ${vals.join(', ')}`);
   };
 }
