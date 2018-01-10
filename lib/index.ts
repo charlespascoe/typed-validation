@@ -289,3 +289,35 @@ export function equals<T>(value: T, ...values: T[]): (arg: any) => ValidationRes
     return error('NOT_EQUAL', vals.length === 1 ? `'${arg}' does not equal '${vals[0]}'` : `'${arg}' not one of: ${vals.join(', ')}`);
   };
 }
+
+
+export function isMap(): (arg: any) => ValidationResult<{[key: string]: any}>;
+export function isMap<T>(next: (arg: {[key: string]: any}) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function isMap(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
+  return isObject((arg: any) => {
+    const nonStringKeys = keysOf(arg).filter(key => typeof key !== 'string');
+
+    if (nonStringKeys.length > 0) {
+      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${typeof key})`)}`);
+    }
+
+    return next ? next(arg) : success(arg);
+  });
+}
+
+
+export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>): (arg: {[key: string]: any}) => ValidationResult<{[key: string]: T}>;
+export function eachValue<T,U>(assertion: (arg: any) => ValidationResult<T>, next: (arg: {[key: string]: T}) => ValidationResult<U>): (arg: {[key: string]: any}) => ValidationResult<U>;
+export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?: (arg: {[key: string]: T}) => ValidationResult<any>): (arg: {[key: string]: any}) => ValidationResult<any> {
+  return (arg: {[key: string]: any}) => {
+    return conformsTo(
+      Object.keys(arg).reduce(
+        (validator, key) => {
+          validator[key] = assertion;
+          return validator;
+        },
+        {} as Validator<{[key: string]: T}>
+      )
+    )(arg);
+  };
+}
