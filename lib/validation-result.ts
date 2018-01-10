@@ -86,7 +86,7 @@ export class ErrorResult {
 
 export interface SuccessResult<T> {
   readonly success: true;
-  readonly result: T;
+  readonly value: T;
 }
 
 
@@ -100,6 +100,6 @@ export function errorFromException(err: any): ErrorResult {
 }
 
 
-export function success<T>(result: T): SuccessResult<T> {
-  return {success: true, result};
+export function success<T>(value: T): SuccessResult<T> {
+  return {success: true, value};
 }

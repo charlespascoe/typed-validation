@@ -83,7 +83,7 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
         return errors.concat(result.addPathNode(new KeyPathNode(key)).errors);
       }
 
-      partiallyValidated[key] = result.result;
+      partiallyValidated[key] = result.value;
       return errors;
     }, [] as ValidationError[]);
 
@@ -261,7 +261,7 @@ export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>, next?:
       );
     }
 
-    const mapped = (results as SuccessResult<T>[]).map(result => result.result);
+    const mapped = (results as SuccessResult<T>[]).map(result => result.value);
 
     return next ? next(mapped) : success(mapped);
   };
