@@ -4,7 +4,7 @@
     "declaration": true,
     "baseUrl": "./lib/",
     "paths": {
-      "validate-interface/*": ["*"]
+      "typed-validation/*": ["*"]
     },
     "target": "ES5",
     "strict": true

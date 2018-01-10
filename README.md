@@ -1,6 +1,6 @@
-[![npm](https://img.shields.io/npm/v/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
-[![npm](https://img.shields.io/npm/dt/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
-[![npm](https://img.shields.io/npm/l/validate-interface.svg)](https://www.npmjs.com/package/validate-interface)
+[![npm](https://img.shields.io/npm/v/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
+[![npm](https://img.shields.io/npm/dt/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
+[![npm](https://img.shields.io/npm/l/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
 
 # Validate Objects Against TypeScript Interfaces #
 
@@ -8,7 +8,7 @@ Builds strongly-typed validators that can prove to the TypeScript compiler that 
 
 ## Installation ##
 
-`$ npm install --save validate-interface`
+`$ npm install --save typed-validation`
 
 ## Basic Usage ##
 
