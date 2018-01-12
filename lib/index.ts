@@ -272,7 +272,7 @@ export function isObject(): (arg: any) => ValidationResult<any>;
 export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'object') return error('NOT_OBJECT', `Expected object, got ${typeof arg}`);
+    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${arg instanceof Array ? 'array' : typeof arg}`);
     return next ? next(arg) : success(arg);
   };
 }
