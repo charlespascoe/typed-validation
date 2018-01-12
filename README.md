@@ -41,38 +41,49 @@ const unsafeObject: any = {
   addressPostcode: 'AB1 2CD'
 };
 
-const bob: Employee = validate(unsafeObject, employeeValidator);
+const result = validate(unsafeObject, conformsTo(employeeValidator));
 
-// Catch and log error messages
-try {
-  const wrong: Employee = validate({
-    name: 'Name',
-    roleCode: 4,
-    completedTraining: 'false',
-    addressPostcode: 'WRONG'
-  }, employeeValidator);
-} catch (err) {
-  console.log(err.toString());
+if (result.success) {
+  const bob = result.value;
+  const name = bob.name;
 }
 
+// Handle errors
+
+const unsafeObject2: any = {
+  name: 'Name',
+  roleCode: 4,
+  completedTraining: 'false',
+  addressPostcode: 'WRONG'
+};
+
+const result2 = validate(unsafeObject2, conformsTo(employeeValidator));
+
+if (!result2.success) {
+  console.log(result2.toString());
+}
 // Outputs:
 // 2 validation errors:
-//   $root.completedTraining: Expected boolean, got string
-//   $root.addressPostcode: Failed regular expression /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
+//   $.completedTraining: Expected boolean, got string
+//   $.addressPostcode: Failed regular expression /^[a-z]{2}\d{1,2}\s+\d{1,2}[a-z]{2}$/i
 
 ```
 
-## Documentation ##
-Validators are built by combining simple assertions using function composition and higher-order functions. For example, the `isString()` assertion returns a function which accepts a single argument of type `any` and returns a `string`. If the argument is a string, it returns the string. If the argument is not a string, it throws an error. This module provides a number of assertions, described below.
+## Overview ##
+Validators are built by combining simple assertions using function composition and higher-order functions. For example, the `isString()` assertion returns a function which accepts a single argument of type `any` and returns either a `SuccessResult<string>` or an `ErrorResult`. It will return `SuccessResult<string>` if and only if the argument is a string, or an `ErrorResult` otherwise. This module provides a number of assertions, described below.
 
 An assertion may take another assertion as its last argument; if assertion check passes, it calls the next assertion. For example, `isString(minLength(1, maxLength(10)))` first checks if the value is a string, then checks if its length is at least 1, and then checks that its length is no more than 10. If `isString` fails, `minLength` isn't run. Chaining assertions in this way allows for complex validation of types and values.
 
 Some assertions require other assertions to come before it. For example, `minLength` can't be used by itself because it needs another assertion to check that the value has the `length` property - so something like `isString(minLength(1))` or `isArray(minLength(1))`.
 
 Jump to section:
+- [validate](#validate)
+- [Handling Validation Errors](#handling-validation-errors)
 - [Validator](#validator)
 - [extendValidator](#extendvalidator)
-- [validate](#validate)
+
+Assertions:
+- [conformsTo](#conformsto)
 - [optional](#optional)
 - [nullable](#nullable)
 - [defaultsTo](#defaultsto)
@@ -83,19 +94,49 @@ Jump to section:
 - [max](#max)
 - [isString](#isstring)
 - [matches](#matches)
-- [minLength](#minLength)
-- [maxLength](#maxLength)
+- [minLength](#minlength)
+- [maxLength](#maxlength)
 - [lengthIs](#lengthis)
 - [isArray](#isarray)
 - [eachItem](#eachitem)
 - [isObject](#isobject)
-- [conformsTo](#conformsto)
 - [equals](#equals)
-- [Handling Validation Errors](#handling-validation-errors)
+- [isMap](#ismap)
+- [eachValue](#eachvalue)
+- [either](#either)
+
+### validate ###
+
+The `validate` function takes two arguments; the first is the argument to validate, the second is an assertion. It returns a result object; if `result.success` is `true`, then `result.value` contains the validated value. If `result.success` is false, then `result.errors` contains the list of errors, which can be formatted by calling `result.toString()`.
+
+```ts
+const result = vaildate(argumentToValidate, isString(minLength(1)));
+
+if (result.success) {
+  const validated: string = result.value;
+  console.log(`The validated result is: ${validated}`);
+} else {
+  console.log(`Validation failed: ${result.toString()}`);
+}
+```
+
+### Handling Validation Errors ###
+
+When validatin fails, `validate` will always return an `ErrorResult` object, which has a property `errors: ValidationError[]`.
+
+The `ValidationError` type has a number of useful properties:
+
+- `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
+- `message`: A human-readable error message, with more information as to why the validation failed.
+- `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
+
+The `ErrorResult.toString()` method prints this information in a human-readable format. The name of the root object defaults to `$`, but this can be changed by passing a string, e.g. `err.toString('this')`.
 
 ### Validator ###
 
-`Validator` is a special type that enables TypeScript to validate that your validator correctly aligns to the type it is supposed to validate.
+`Validator` is a type that enables TypeScript to validate that the validator correctly aligns to the interface it is supposed to validate.
+
+The keys of the validator align with the keys of the interface. The values of the validator are a chain of assertions.
 
 ```ts
 interface IFoo {
@@ -151,17 +192,49 @@ const barValidator: Validator<IBar> = extendValidator(fooValidator, {
 });
 ```
 
-### validate ###
-`function validate<T>(arg: any, validator: Validator<T>, options?: IValidationOptions): Validated<T>`
 
-Checks that `arg` conforms to the type `T` using the given `validator`. Returns an object that conforms to `T` or throws an error.
+### conformsTo ###
+Returns an error if the value does not conform to the given validator.
+
+```ts
+interface IFoo {
+  bar: number;
+}
+
+const fooValidator: Validator<IFoo> = {
+  bar: isNumber()
+};
+
+// Returns a success result
+validate({bar: 123}, conformsTo(fooValidator));
+
+// Returns an error result
+validate({bar: 'example'}, conformsTo(fooValidator));
+```
 
 The third argument is an optional object of options:
 
-- `allowAdditionalProperties: boolean` - If false, an error is thrown if there are any properties in addition to the ones defined in the validator. Defaults to `true`, which removes additional properties from the result.
+- `allowAdditionalProperties: boolean` - If false, returns an error if there are any properties in addition to the ones defined in the validator. Defaults to `true`, which removes additional properties from the result.
+
+```ts
+const result1 = validate({foo: 'abc', bar: 123}, conformsTo(fooValidator));
+
+if (result1.success) {
+  console.log(result1.value); // {bar: 123}
+}
+
+const result2 = validate({foo: 'abc', bar: 123}, conformsTo(fooValidator, {allowAdditionalProperties: false}));
+
+if (!result2.success) {
+  console.log(result2.toString())
+  // 1 validation error:
+  //   $: Unexpected additional properties: foo
+}
+```
+
 
 ### optional ###
-Used when the property may not present on the object, or its value is undefined. Example:
+Used when the properties may not present on the object, or its value is undefined. Example:
 
 ```ts
 interface IFoo {
@@ -173,8 +246,8 @@ const fooValidator: Validator<IFoo> = {
 };
 
 // Both of these are acceptable
-validate({}, fooValidator);
-validate({bar: undefined}, fooValidator);
+validate({}, conformsTo(fooValidator));
+validate({bar: undefined}, conformsTo(fooValidator));
 ```
 
 **Note:** it is recommended you specify `undefined` in the type (e.g. `prop: T | undefined`) instead of optional properties (e.g. `prop?: T`), because the compiler will allow optional properties to be missing from the validator, which would result in the property always defaulting to `undefined`:
@@ -189,7 +262,7 @@ const fooValidator: Validator<IFoo> = { };
 ```
 
 ### nullable ###
-Used when the property could be null (e.g. `prop: T | null`).
+Used when the value could be null (e.g. `prop: T | null`).
 
 ```ts
 interface IFoo {
@@ -214,9 +287,13 @@ const fooValidator: Validator<IFoo> = {
   bar: defaultsTo('baz', isString()),
 };
 
-const foo = validate({}, fooValidator);
+const result = validate({}, conformsTo(fooValidator));
 
-console.log(foo);
+if (result.success) {
+  console.log(result.value);
+}
+
+// Output:
 // {bar: 'baz'}
 ```
 
@@ -234,20 +311,24 @@ const fooValidator: Validator<IFoo> = {
   bar: onErrorDefaultsTo('baz', isString()),
 };
 
-const foo = validate({bar: 123}, fooValidator);
+const result = validate({bar: 123}, conformsTo(fooValidator));
 
-console.log(foo);
+if (result.success) {
+  console.log(result.value);
+}
+
+// Output:
 // {bar: 'baz'}
 ```
 
 ### isBoolean ###
-Throws an error if the value is not a boolean.
+Returns an error if the value is not a boolean.
 
 ### isNumber ###
-Throws an error if the value is not a number.
+Returns an error if the value is not a number.
 
 ### min ###
-Throws an error if the value is less than the given minimum.
+Returns an error if the value is less than the given minimum.
 
 ```ts
 interface IFoo {
@@ -258,18 +339,18 @@ const fooValidator: Validator<IFoo> = {
   bar: isNuber(min(0))
 };
 
-// This will throw an error
-const foo = validate({bar: -1}, fooValidator);
+// Returns an error result
+const result = validate({bar: -1}, conformsTo(fooValidator));
 ```
 
 ### max ###
-Throws an error if the value is greater than the given maximum - see [min](#min).
+Returns an error if the value is greater than the given maximum - see [min](#min).
 
 ### isString ###
-Throws an error if the value is not a string.
+Returns an error if the value is not a string.
 
 ### matches ###
-Throws an error if the string value does not match the given regex.
+Returns an error if the string value does not match the given regex.
 
 ```ts
 interface IFoo {
@@ -280,12 +361,12 @@ const fooValidator: Validator<IFoo> = {
   bar: isStirng(matches(/^[a-z]+$/))
 };
 
-// This will throw an error
-const foo = validate({bar: '123abc'}, fooValidator);
+// Returns an error result
+const result = validate({bar: '123abc'}, conformsTo(fooValidator));
 ```
 
 ### minLength ###
-Throws an error if length of the value (e.g. a string or an array) is less than the given minimum.
+Returns an error if length of the value (e.g. a string or an array) is less than the given minimum.
 
 ```ts
 interface IFoo {
@@ -296,18 +377,18 @@ const fooValidator: Validator<IFoo> = {
   bar: isStirng(minLength(1))
 };
 
-// This will throw an error
-const foo = validate({bar: ''}, fooValidator);
+// Returns an error result
+const result = validate({bar: ''}, conformsTo(fooValidator));
 ```
 
 ### maxLength ###
-Throws an error if length of the value (e.g. a string or an array) is less than the given maximum - see [minLength](#minlength).
+Returns an error if length of the value (e.g. a string or an array) is less than the given maximum - see [minLength](#minlength).
 
 ### lengthIs ###
-Throws an error if length of the value (e.g. a string or an array) is not equal to the given length - see [minLength](#minlength).
+Returns an error if length of the value (e.g. a string or an array) is not equal to the given length - see [minLength](#minlength).
 
 ### isArray ###
-Throws an error if the value is not an array. If no other assertions are given, then the type defaults to `any[]`.
+Returns an error if the value is not an array. If no other assertions are given, then the type defaults to `any[]`.
 
 ```ts
 interface IFoo {
@@ -321,16 +402,16 @@ const fooValidator: Validator<IFoo> = {
 // This is valid
 validate({
   bar: ['abc', 123, true, null]
-}, fooValidator);
+}, conformsTo(fooValidator));
 
-// Throws an error
+// Returns an error
 validate({
   bar: 'baz'
-}, fooValidator);
+}, conformsTo(fooValidator));
 ```
 
 ### eachItem ###
-Throws an error if any value of an array does not match the following assertion chain.
+Returns an error if any value of an array does not match the following assertion chain.
 
 ```ts
 interface IFoo {
@@ -344,16 +425,16 @@ const fooValidator: Validator<IFoo> = {
 // This is valid
 validate({
   bar: [1, 2, 3]
-}, fooValidator);
+}, conformsTo(fooValidator));
 
-// Throws an error
+// Returns an error
 validate({
   bar: ['abc', 123, true, null]
-}, fooValidator);
+}, conformsTo(fooValidator));
 ```
 
 ### isObject ###
-Throws an error if the value is not an object.
+Returns an error if the value is not an object.
 
 ```ts
 interface IFoo {
@@ -367,51 +448,16 @@ const fooValidator: Validator<IFoo> = {
 // This is valid, but it wouldn't be safe to access properties on foo.bar
 const foo = validate({
   bar: {baz: 123}
-}, fooValidator);
+}, conformsTo(fooValidator));
 
-// Throws an error
+// Returns an error
 validate({
   bar: 'object'
-}, fooValidator);
-```
-
-### conformsTo ###
-Throws an error if the value does not conform to the given validator.
-
-```ts
-interface IBar {
-  baz: number;
-}
-
-interface IFoo {
-  bar: IBar;
-}
-
-const barValidator: Validator<IBar> = {
-  baz: isNumber()
-};
-
-const fooValidator: Validator<IFoo> = {
-  bar: conformsTo(barValidator)
-};
-
-// This is valid
-const foo = validate({
-  bar: {
-    baz: 123
-  }
-}, fooValidator);
-
-// Throws an error
-validate({
-  bar: {
-    baz: 'blah'
-  }
-}, fooValidator);
+}, conformsTo(fooValidator));
 ```
 
 ### equals ###
-Throws an error if the value does not equal one of the given values.
+Returns an error if the value does not equal one of the given values.
 
 ```ts
 type Bar = 'A' | 'B' | 'C';
@@ -424,20 +470,100 @@ const fooValidator: Validator<IFoo> = {
   bar: equals<Bar>('A', 'B', 'C')
 };
 
-// Throws an error
+// Returns an error
 validate({
   bar: 'D'
-}, fooValidator);
+}, conformsTo(fooValidator));
 ```
 
-### Handling Validation Errors ###
+### isMap ###
+Validates that the result is a map of `string` onto `any`.
 
-Errors will always be of the type `ValidationErrorCollection`, which has a property `errors: ValidationError[]`.
+```ts
+interface IFoo {
+  map: {[key: string]: any};
+}
 
-The `ValidationError` type has a number of useful properties:
+const fooValidator: Validator<IFoo> = {
+  map: isMap()
+};
 
-- `errorCode`: A string which is one of a set of error codes, e.g. `NOT_STRING`. Useful for producing custom error messages or triggering certain error logic.
-- `message`: A human-readable error message, with more information as to why the validation failed
-- `path`: An array of objects that describe the path to the value that caused the validation to fail. Each object is either an `ArrayIndexPathNode` (which has an `index` property) or `KeyPathNode` (which has a `key` property).
+// This is valid
+validate({
+  map: {
+    bar: 'ABC',
+    baz: {x: 123, y: 456},
+    blah: null
+  }
+}, conformsTo(fooValidator));
 
-The `ValidationErrorCollection.toString()` method prints this information in a human-readable format. The name of the root object defaults to `$root`, but this can be changed by passing a string, e.g. `err.toString('this')`.
+// This is also valid
+validate({
+  map: { }
+}, conformsTo(fooValidator));
+
+// Returns an error - not an object
+validate({
+  map: 'abc'
+}, conformsTo(fooValidator));
+
+// Returns an error - one of the keys is not a string
+validate({
+  map: {
+    bar: 'ABC',
+    baz: {x: 123, y: 456},
+    0: true
+  }
+}, conformsTo(fooValidator));
+```
+
+### eachValue ###
+Returns an error if any value of a map does not match the following assertion chain.
+
+```ts
+interface IFoo {
+  map: {[key: string]: string};
+}
+
+const fooValidator: Validator<IFoo> = {
+  map: isMap(eachValue(isString(minLength(1))))
+};
+
+// This is valid
+validate({
+  map: {
+    bar: 'ABC',
+    'a very long key with spaces': 'DEF'
+  }
+}, conformsTo(fooValidator));
+
+// Returns an error result
+validate({
+  map: {
+    bar: true, // Not a string
+    baz: ''    // Too short
+  }
+}, conformsTo(fooValidator));
+```
+
+### either ###
+Checks against multiple assertions until either one is valid, or they all fail. Useful for complex union types. Assertions are checked in the order given.
+
+```ts
+interface IFoo {
+  bar: string | string[];
+}
+
+const fooValidator: Validator<IFoo> = {
+  bar: either(
+    isString(),
+    isArray(eachItem(isString()))
+  )
+};
+
+// These are valid
+validate({bar: 'ABC'}, conformsTo(fooValidator));
+validate({bar: ['A', 'B', 'C']}, conformsTo(fooValidator));
+```
+
+**Note:** Due to limitations with generics, currently up to 10 assertions are supported by TypeScript.
