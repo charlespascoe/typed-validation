@@ -260,7 +260,7 @@ export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>, next?:
   return (arg: any[]) => {
     const results = arg.map((item, index) => tryCatch(
       () => assertion(item),
-      (err) => error('UNHANDLED_ERROR', `Unhandled error: ${typeof err === 'object' && err.message || 'Unknown error'}`)
+      (err) => errorFromException(err)
     ));
 
     if (results.some(ErrorResult.isErrorResult)) {
