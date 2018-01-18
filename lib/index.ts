@@ -1,4 +1,4 @@
-import { keysOf, tryCatch } from './utils';
+import { keysOf, tryCatch, increaseIndent } from './utils';
 import {
   ArrayIndexPathNode,
   error,
@@ -87,10 +87,17 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
       return errors;
     }, [] as ValidationError[]);
 
-    if (!allowAdditionalProperties && keysOf(arg).some(key => !validator.hasOwnProperty(key))) {
-      errors.push(
-        new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional propertie(s): ${keysOf(arg).filter(key => !validator.hasOwnProperty(key)).join(', ')}`)
-      );
+    if (!allowAdditionalProperties) {
+      const additionalProperties = keysOf(arg).filter(key => !validator.hasOwnProperty(key));
+
+      if (additionalProperties.length > 0) {
+        errors.push(
+          new ValidationError(
+            'UNEXPECTED_ADDITIONAL_PROPERTIES',
+            `Unexpected additional propert${additionalProperties.length === 1 ? 'y' : 'ies'}: ${additionalProperties.join(', ')}`
+          )
+        );
+      }
     }
 
     if (errors.length > 0) return new ErrorResult(errors);
@@ -102,18 +109,22 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
 }
 
 
-export function optional<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | undefined> {
+export function optional(): (arg: any) => ValidationResult<any | undefined>;
+export function optional<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | undefined>;
+export function optional(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any | undefined> {
   return (arg: any) => {
     if (arg === undefined) return success(undefined);
-    return next(arg);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null> {
+export function nullable(): (arg: any) => ValidationResult<any | null>;
+export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null>;
+export function nullable(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any | null> {
   return (arg: any) => {
     if (arg === null) return success(null);
-    return next(arg);
+    return next ? next(arg) : success(arg);
   };
 }
 
@@ -130,12 +141,15 @@ export function defaultsTo(def: any, next?: (arg: any) => ValidationResult<any>)
 
 export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U> {
   return (arg: T) => {
-    try {
-      return next(arg);
-    } catch (_) {
-      // Ignore error - resort to default
-      return success(def);
-    }
+    const result = tryCatch(
+      () => next(arg),
+      (err) => errorFromException(err)
+    );
+
+    if (result.success) return result;
+
+    // Ignore error - resort to default
+    return success(def);
   };
 }
 
@@ -246,7 +260,7 @@ export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>, next?:
   return (arg: any[]) => {
     const results = arg.map((item, index) => tryCatch(
       () => assertion(item),
-      (err) => error('UNHANDLED_ERROR', `Unhandled error: ${typeof err === 'object' && err.message || 'Unknown error'}`)
+      (err) => errorFromException(err)
     ));
 
     if (results.some(ErrorResult.isErrorResult)) {
@@ -310,7 +324,7 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>): (arg
 export function eachValue<T,U>(assertion: (arg: any) => ValidationResult<T>, next: (arg: {[key: string]: T}) => ValidationResult<U>): (arg: {[key: string]: any}) => ValidationResult<U>;
 export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?: (arg: {[key: string]: T}) => ValidationResult<any>): (arg: {[key: string]: any}) => ValidationResult<any> {
   return (arg: {[key: string]: any}) => {
-    return conformsTo(
+    const result = conformsTo(
       Object.keys(arg).reduce(
         (validator, key) => {
           validator[key] = assertion;
@@ -319,6 +333,10 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?
         {} as Validator<{[key: string]: T}>
       )
     )(arg);
+
+    if (result.success && next) return next(result.value);
+
+    return result;
   };
 }
 
@@ -346,6 +364,6 @@ export function either(...assertions: Array<(arg: any) => any>): (arg: any) => a
       errors = errors.concat(result.errors);
     }
 
-    return error('NO_MATCH', 'No match found - the following assertions failed:\n    ' + errors.map(error => error.toString()).join('\n    '));
+    return error('NO_MATCH', 'No match found - the following assertions failed:\n' + errors.map(error => increaseIndent(error.toString(), 2)).join('\n'));
   };
 }
