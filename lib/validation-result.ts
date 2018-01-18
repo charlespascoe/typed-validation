@@ -1,3 +1,6 @@
+import { increaseIndent } from './utils';
+
+
 export type ValidationResult<T> = SuccessResult<T> | ErrorResult;
 
 
@@ -75,7 +78,7 @@ export class ErrorResult {
   }
 
   public toString(root: string = '$'): string {
-    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n  ${this.errors.map(error => error.toString(root)).join('\n  ')}`;
+    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n${this.errors.map(error => increaseIndent(error.toString(root), 2)).join('\n')}`;
   }
 
   public static isErrorResult(arg: any): arg is ErrorResult {

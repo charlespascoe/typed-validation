@@ -1,4 +1,4 @@
-import { keysOf, tryCatch } from './utils';
+import { keysOf, tryCatch, increaseIndent } from './utils';
 import {
   ArrayIndexPathNode,
   error,
@@ -364,6 +364,6 @@ export function either(...assertions: Array<(arg: any) => any>): (arg: any) => a
       errors = errors.concat(result.errors);
     }
 
-    return error('NO_MATCH', 'No match found - the following assertions failed:\n    ' + errors.map(error => error.toString()).join('\n    '));
+    return error('NO_MATCH', 'No match found - the following assertions failed:\n' + errors.map(error => increaseIndent(error.toString(), 2)).join('\n'));
   };
 }
