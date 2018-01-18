@@ -87,10 +87,17 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
       return errors;
     }, [] as ValidationError[]);
 
-    if (!allowAdditionalProperties && keysOf(arg).some(key => !validator.hasOwnProperty(key))) {
-      errors.push(
-        new ValidationError('UNEXPECTED_ADDITIONAL_PROPERTIES', `Unexpected additional propertie(s): ${keysOf(arg).filter(key => !validator.hasOwnProperty(key)).join(', ')}`)
-      );
+    if (!allowAdditionalProperties) {
+      const additionalProperties = keysOf(arg).filter(key => !validator.hasOwnProperty(key));
+
+      if (additionalProperties.length > 0) {
+        errors.push(
+          new ValidationError(
+            'UNEXPECTED_ADDITIONAL_PROPERTIES',
+            `Unexpected additional propert${additionalProperties.length === 1 ? 'y' : 'ies'}: ${additionalProperties.join(', ')}`
+          )
+        );
+      }
     }
 
     if (errors.length > 0) return new ErrorResult(errors);
