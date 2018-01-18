@@ -324,7 +324,7 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>): (arg
 export function eachValue<T,U>(assertion: (arg: any) => ValidationResult<T>, next: (arg: {[key: string]: T}) => ValidationResult<U>): (arg: {[key: string]: any}) => ValidationResult<U>;
 export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?: (arg: {[key: string]: T}) => ValidationResult<any>): (arg: {[key: string]: any}) => ValidationResult<any> {
   return (arg: {[key: string]: any}) => {
-    return conformsTo(
+    const result = conformsTo(
       Object.keys(arg).reduce(
         (validator, key) => {
           validator[key] = assertion;
@@ -333,6 +333,10 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?
         {} as Validator<{[key: string]: T}>
       )
     )(arg);
+
+    if (result.success && next) return next(result.value);
+
+    return result;
   };
 }
 
