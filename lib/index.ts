@@ -137,12 +137,15 @@ export function defaultsTo(def: any, next?: (arg: any) => ValidationResult<any>)
 
 export function onErrorDefaultsTo<T,U>(def: U, next: (arg: T) => ValidationResult<U>): (arg: T) => ValidationResult<U> {
   return (arg: T) => {
-    try {
-      return next(arg);
-    } catch (_) {
-      // Ignore error - resort to default
-      return success(def);
-    }
+    const result = tryCatch(
+      () => next(arg),
+      (err) => errorFromException(err)
+    );
+
+    if (result.success) return result;
+
+    // Ignore error - resort to default
+    return success(def);
   };
 }
 
