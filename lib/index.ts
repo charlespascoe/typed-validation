@@ -109,18 +109,22 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
 }
 
 
-export function optional<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | undefined> {
+export function optional(): (arg: any) => ValidationResult<any | undefined>;
+export function optional<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | undefined>;
+export function optional(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any | undefined> {
   return (arg: any) => {
     if (arg === undefined) return success(undefined);
-    return next(arg);
+    return next ? next(arg) : success(arg);
   };
 }
 
 
-export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null> {
+export function nullable(): (arg: any) => ValidationResult<any | null>;
+export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null>;
+export function nullable(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any | null> {
   return (arg: any) => {
     if (arg === null) return success(null);
-    return next(arg);
+    return next ? next(arg) : success(arg);
   };
 }
 
