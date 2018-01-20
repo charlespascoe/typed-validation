@@ -1,6 +1,6 @@
 {
   "name": "typed-validation",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Validate Objects Against TypeScript Interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
