@@ -1,4 +1,4 @@
-import { increaseIndent } from './utils';
+import { increaseIndent, keysOf, pluralise } from './utils';
 
 
 export type ValidationResult<T> = SuccessResult<T> | ErrorResult;
@@ -56,6 +56,30 @@ export class ValidationError {
 }
 
 
+export class EitherValidationError extends ValidationError {
+  public readonly errors: {[description: string]: ValidationError[]} = {};
+
+  constructor() {
+    super('NO_MATCH', 'No match found');
+  }
+
+  public toString(root: string = '$'): string {
+    return `${this.pathString(root)}: ${this.message} - the following assertions failed:\n` +
+      keysOf(this.errors)
+        .map(desc => {
+          const errors = this.errors[desc];
+
+          return increaseIndent(
+            `Not ${desc}, due to ${pluralise(errors.length, 'validation error', 'validation errors')}:\n` +
+              errors.map(error => increaseIndent(error.toString(), 4)).join('\n'),
+            4
+          );
+        })
+        .join('\n');
+  }
+}
+
+
 export class ErrorResult {
   public readonly success: false = false;
 
@@ -78,7 +102,7 @@ export class ErrorResult {
   }
 
   public toString(root: string = '$'): string {
-    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n${this.errors.map(error => increaseIndent(error.toString(root), 2)).join('\n')}`;
+    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n${this.errors.map(error => increaseIndent(error.toString(root), 4)).join('\n')}`;
   }
 
   public static isErrorResult(arg: any): arg is ErrorResult {
