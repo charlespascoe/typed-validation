@@ -40,3 +40,9 @@ export function increaseIndent(text: string, indent: number): string {
 export function pluralise(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
+
+
+export function primitiveType(arg: any): string {
+  if (arg instanceof Array) return 'array';
+  return typeof arg;
+}

@@ -1,4 +1,4 @@
-import { keysOf, tryCatch } from './utils';
+import { keysOf, tryCatch, primitiveType } from './utils';
 import {
   ArrayIndexPathNode,
   error,
@@ -159,7 +159,7 @@ export function isBoolean(): (arg: any) => ValidationResult<boolean>;
 export function isBoolean<T=boolean>(next: (arg: boolean) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isBoolean(next?: (arg: boolean) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'boolean') return error('NOT_BOOLEAN', `Expected boolean, got ${typeof arg}`);
+    if (typeof arg !== 'boolean') return error('NOT_BOOLEAN', `Expected boolean, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -169,7 +169,7 @@ export function isNumber(): (arg: any) => ValidationResult<number>;
 export function isNumber<T=number>(next: (arg: number) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isNumber(next?: (arg: number) => any): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'number') return error('NOT_NUMBER', `Expected number, got ${typeof arg}`);
+    if (typeof arg !== 'number') return error('NOT_NUMBER', `Expected number, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -199,7 +199,7 @@ export function isString(): (arg: any) => ValidationResult<string>;
 export function isString<T=string>(next: (arg: string) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isString(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'string') return error('NOT_STRING', `Expected string, got ${typeof arg}`);
+    if (typeof arg !== 'string') return error('NOT_STRING', `Expected string, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -249,7 +249,7 @@ export function isArray(): (arg: any) => ValidationResult<any[]>;
 export function isArray<T>(next: (arg: any[]) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isArray(next?: (arg: any[]) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (!(arg instanceof Array)) return error('NOT_ARRAY', `Expected array, got ${typeof arg}`);
+    if (!(arg instanceof Array)) return error('NOT_ARRAY', `Expected array, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -287,7 +287,7 @@ export function isObject(): (arg: any) => ValidationResult<any>;
 export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${arg instanceof Array ? 'array' : typeof arg}`);
+    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -313,7 +313,7 @@ export function isMap(next?: (arg: any) => ValidationResult<any>): (arg: any) =>
     const nonStringKeys = keysOf(arg).filter(key => typeof key !== 'string');
 
     if (nonStringKeys.length > 0) {
-      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${typeof key})`)}`);
+      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${primitiveType(arg)})`)}`);
     }
 
     return next ? next(arg) : success(arg);
