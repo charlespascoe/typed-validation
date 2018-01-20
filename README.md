@@ -549,6 +549,8 @@ validate({
 ### either ###
 Checks against multiple assertions until either one is valid, or they all fail. Useful for complex union types. Assertions are checked in the order given.
 
+When no match is found, all the validation errors for each type are printed.
+
 ```ts
 interface IFoo {
   bar: string | string[];
@@ -556,14 +558,28 @@ interface IFoo {
 
 const fooValidator: Validator<IFoo> = {
   bar: either(
-    isString(),
-    isArray(eachItem(isString()))
+    is('a letter', isString(lengthIs(1))),
+    is('an array of letters', isArray(eachItem(isString(lengthIs(1)))))
   )
 };
 
 // These are valid
-validate({bar: 'ABC'}, conformsTo(fooValidator));
+validate({bar: 'A'}, conformsTo(fooValidator));
 validate({bar: ['A', 'B', 'C']}, conformsTo(fooValidator));
+
+// An invalid example
+
+const result = validate({bar: ['A', 'BC', 'D']}, conformsTo(fooValidator));
+
+if (!result.success) {
+    console.log(result.toString());
+    // 1 validation error:
+    //     $.bar: No match found - the following assertions failed:
+    //         Not a letter, due to 1 validation error:
+    //             $: Expected string, got array
+    //         Not an array of letters, due to 1 validation error:
+    //             $[1]: Length 2 is not equal to 1
+}
 ```
 
-**Note:** Due to limitations with generics, currently up to 10 assertions are supported by TypeScript.
+**Note:** Due to limitations with generics, currently up to 20 assertions are supported by TypeScript.
