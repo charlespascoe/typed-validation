@@ -35,3 +35,14 @@ export function increaseIndent(text: string, indent: number): string {
   const indentPadding = repeat(' ', indent);
   return indentPadding + text.split('\n').join('\n' + indentPadding);
 }
+
+
+export function pluralise(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+
+export function primitiveType(arg: any): string {
+  if (arg instanceof Array) return 'array';
+  return typeof arg;
+}

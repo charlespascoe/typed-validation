@@ -1,4 +1,4 @@
-import { keysOf, tryCatch, increaseIndent } from './utils';
+import { keysOf, tryCatch, primitiveType } from './utils';
 import {
   ArrayIndexPathNode,
   error,
@@ -9,6 +9,7 @@ import {
   success,
   ValidationError,
   ValidationResult,
+  EitherValidationError
 } from './validation-result';
 export * from './validation-result';
 
@@ -158,7 +159,7 @@ export function isBoolean(): (arg: any) => ValidationResult<boolean>;
 export function isBoolean<T=boolean>(next: (arg: boolean) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isBoolean(next?: (arg: boolean) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'boolean') return error('NOT_BOOLEAN', `Expected boolean, got ${typeof arg}`);
+    if (typeof arg !== 'boolean') return error('NOT_BOOLEAN', `Expected boolean, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -168,7 +169,7 @@ export function isNumber(): (arg: any) => ValidationResult<number>;
 export function isNumber<T=number>(next: (arg: number) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isNumber(next?: (arg: number) => any): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'number') return error('NOT_NUMBER', `Expected number, got ${typeof arg}`);
+    if (typeof arg !== 'number') return error('NOT_NUMBER', `Expected number, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -198,7 +199,7 @@ export function isString(): (arg: any) => ValidationResult<string>;
 export function isString<T=string>(next: (arg: string) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isString(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'string') return error('NOT_STRING', `Expected string, got ${typeof arg}`);
+    if (typeof arg !== 'string') return error('NOT_STRING', `Expected string, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -248,7 +249,7 @@ export function isArray(): (arg: any) => ValidationResult<any[]>;
 export function isArray<T>(next: (arg: any[]) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isArray(next?: (arg: any[]) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (!(arg instanceof Array)) return error('NOT_ARRAY', `Expected array, got ${typeof arg}`);
+    if (!(arg instanceof Array)) return error('NOT_ARRAY', `Expected array, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -286,7 +287,7 @@ export function isObject(): (arg: any) => ValidationResult<any>;
 export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${arg instanceof Array ? 'array' : typeof arg}`);
+    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -312,7 +313,7 @@ export function isMap(next?: (arg: any) => ValidationResult<any>): (arg: any) =>
     const nonStringKeys = keysOf(arg).filter(key => typeof key !== 'string');
 
     if (nonStringKeys.length > 0) {
-      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${typeof key})`)}`);
+      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${primitiveType(arg)})`)}`);
     }
 
     return next ? next(arg) : success(arg);
@@ -341,29 +342,54 @@ export function eachValue<T>(assertion: (arg: any) => ValidationResult<T>, next?
 }
 
 
-export function either<A,B>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>): (arg: any) => ValidationResult<A | B>;
-export function either<A,B,C>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>): (arg: any) => ValidationResult<A | B | C>;
-export function either<A,B,C,D>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>): (arg: any) => ValidationResult<A | B | C | D>;
-export function either<A,B,C,D,E>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>): (arg: any) => ValidationResult<A | B | C | D | E>;
-export function either<A,B,C,D,E,F>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>): (arg: any) => ValidationResult<A | B | C | D | E | F>;
-export function either<A,B,C,D,E,F,G>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>): (arg: any) => ValidationResult<A | B | C | D | E | F | G>;
-export function either<A,B,C,D,E,F,G,H>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H>;
-export function either<A,B,C,D,E,F,G,H,I>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>, assertion9: (arg: any) => ValidationResult<I>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H | I>;
-export function either<A,B,C,D,E,F,G,H,I,J>(assertion1: (arg: any) => ValidationResult<A>, assertion2: (arg: any) => ValidationResult<B>, assertion3: (arg: any) => ValidationResult<C>, assertion4: (arg: any) => ValidationResult<D>, assertion5: (arg: any) => ValidationResult<E>, assertion6: (arg: any) => ValidationResult<F>, assertion7: (arg: any) => ValidationResult<G>, assertion8: (arg: any) => ValidationResult<H>, assertion9: (arg: any) => ValidationResult<I>, assertion10: (arg: any) => ValidationResult<J>): (arg: any) => ValidationResult<A | B | C | D | E | F | G | H | I | J>;
-export function either(...assertions: Array<(arg: any) => any>): (arg: any) => any {
-  return (arg: any) => {
-    let errors: ValidationError[] = [];
+export interface IEitherOption<T> {
+  description: string;
+  assertion: (arg: any) => ValidationResult<T>;
+}
 
-    for (const assertion of assertions) {
-      const result = assertion(arg);
+
+export function is<T>(description: string, assertion: (arg: any) => ValidationResult<T>): IEitherOption<T> {
+  return {description, assertion};
+}
+
+
+// These overloads are necessary for type safety
+export function either<A,B>(option1: IEitherOption<A>, option2: IEitherOption<B>): (arg: any) => ValidationResult<A|B>;
+export function either<A,B,C>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>): (arg: any) => ValidationResult<A|B|C>;
+export function either<A,B,C,D>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>): (arg: any) => ValidationResult<A|B|C|D>;
+export function either<A,B,C,D,E>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>): (arg: any) => ValidationResult<A|B|C|D|E>;
+export function either<A,B,C,D,E,F>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>): (arg: any) => ValidationResult<A|B|C|D|E|F>;
+export function either<A,B,C,D,E,F,G>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>): (arg: any) => ValidationResult<A|B|C|D|E|F|G>;
+export function either<A,B,C,D,E,F,G,H>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H>;
+export function either<A,B,C,D,E,F,G,H,I>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I>;
+export function either<A,B,C,D,E,F,G,H,I,J>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J>;
+export function either<A,B,C,D,E,F,G,H,I,J,K>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>, option16: IEitherOption<P>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>, option16: IEitherOption<P>, option17: IEitherOption<Q>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>, option16: IEitherOption<P>, option17: IEitherOption<Q>, option18: IEitherOption<R>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>, option16: IEitherOption<P>, option17: IEitherOption<Q>, option18: IEitherOption<R>, option19: IEitherOption<S>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S>;
+export function either<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T>(option1: IEitherOption<A>, option2: IEitherOption<B>, option3: IEitherOption<C>, option4: IEitherOption<D>, option5: IEitherOption<E>, option6: IEitherOption<F>, option7: IEitherOption<G>, option8: IEitherOption<H>, option9: IEitherOption<I>, option10: IEitherOption<J>, option11: IEitherOption<K>, option12: IEitherOption<L>, option13: IEitherOption<M>, option14: IEitherOption<N>, option15: IEitherOption<O>, option16: IEitherOption<P>, option17: IEitherOption<Q>, option18: IEitherOption<R>, option19: IEitherOption<S>, option20: IEitherOption<T>): (arg: any) => ValidationResult<A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T>;
+export function either(...options: Array<IEitherOption<any>>): (arg: any) => any {
+  return (arg: any) => {
+    const eitherError = new EitherValidationError();
+
+    for (const option of options) {
+      const result = tryCatch(
+        () => option.assertion(arg),
+        (err) => errorFromException(err)
+      );
 
       if (result.success) {
         return result;
       }
 
-      errors = errors.concat(result.errors);
+      eitherError.errors[option.description] = result.errors;
     }
 
-    return error('NO_MATCH', 'No match found - the following assertions failed:\n' + errors.map(error => increaseIndent(error.toString(), 2)).join('\n'));
+    return new ErrorResult(eitherError);
   };
 }
