@@ -41,19 +41,17 @@ export function validate<T>(arg: any, assertion: (arg: any) => ValidationResult<
   );
 }
 
-
-export function extendValidator<T,U>(validator1: Validator<T>, validator2: Validator<U>): Validator<T & U> {
-  const result: any = {};
-
-  for (const key in validator1) {
-    result[key] = validator1[key];
-  }
-
-  for (const key in validator2) {
-    result[key] = validator2[key];
-  }
-
-  return result as Validator<T & U>;
+export function extendValidator<A,B>(validator1: Validator<A>, validator2: Validator<B>): Validator<A & B>;
+export function extendValidator<A,B,C>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>): Validator<A & B & C>;
+export function extendValidator<A,B,C,D>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>): Validator<A & B & C & D>;
+export function extendValidator<A,B,C,D,E>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>): Validator<A & B & C & D & E>;
+export function extendValidator<A,B,C,D,E,F>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>, validator6: Validator<F>): Validator<A & B & C & D & E & F>;
+export function extendValidator<A,B,C,D,E,F,G>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>, validator6: Validator<F>, validator7: Validator<G>): Validator<A & B & C & D & E & F & G>;
+export function extendValidator<A,B,C,D,E,F,G,H>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>, validator6: Validator<F>, validator7: Validator<G>, validator8: Validator<H>): Validator<A & B & C & D & E & F & G & H>;
+export function extendValidator<A,B,C,D,E,F,G,H,I>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>, validator6: Validator<F>, validator7: Validator<G>, validator8: Validator<H>, validator9: Validator<I>): Validator<A & B & C & D & E & F & G & H & I>;
+export function extendValidator<A,B,C,D,E,F,G,H,I,J>(validator1: Validator<A>, validator2: Validator<B>, validator3: Validator<C>, validator4: Validator<D>, validator5: Validator<E>, validator6: Validator<F>, validator7: Validator<G>, validator8: Validator<H>, validator9: Validator<I>, validator10: Validator<J>): Validator<A & B & C & D & E & F & G & H & I & J>;
+export function extendValidator(...validators: Validator<any>[]): Validator<any> {
+  return validators.reduce((validator, currentValidator) => ({...validator, ...currentValidator}), {} as Validator<any>);
 }
 
 
