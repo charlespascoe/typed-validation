@@ -1,48 +1,19 @@
-import { increaseIndent, keysOf, pluralise } from './utils';
+import { formatPath, formatErrorResultMessage, formatEitherValidationErrorMessages } from './formatting';
 
 
 export type ValidationResult<T> = SuccessResult<T> | ErrorResult;
 
 
-export abstract class PathNode {  }
-
-
-export class KeyPathNode extends PathNode {
-  constructor(public readonly key: string) {
-    super();
-  }
-
-  public toString(): string {
-    if (/^[$a-z_][$a-z0-9_]*$/i.test(this.key)) {
-      return `.${this.key}`;
-    } else {
-      return `['${this.key.replace('\\', '\\\\').replace("'", "\\'")}']`;
-    }
-  }
-}
-
-
-export class ArrayIndexPathNode extends PathNode {
-  constructor(public readonly index: number) {
-    super();
-  }
-
-  public toString(): string {
-    return `[${this.index}]`;
-  }
-}
-
-
 export class ValidationError {
-  public readonly path: PathNode[] = [];
+  public readonly path: Array<string | number> = [];
 
   constructor(
     public readonly errorCode: string,
     public readonly message: string,
   ) { }
 
-  public addPathNode(node: PathNode): ValidationError {
-    this.path.unshift(node);
+  public addPathSegment(seg: string | number): ValidationError {
+    this.path.unshift(seg);
     return this;
   }
 
@@ -51,7 +22,7 @@ export class ValidationError {
   }
 
   public pathString(root: string = '$'): string {
-    return root + this.path.map(node => node.toString()).join('');
+    return formatPath(root, this.path);
   }
 }
 
@@ -64,18 +35,7 @@ export class EitherValidationError extends ValidationError {
   }
 
   public toString(root: string = '$'): string {
-    return `${this.pathString(root)}: ${this.message} - the following assertions failed:\n` +
-      keysOf(this.errors)
-        .map(desc => {
-          const errors = this.errors[desc];
-
-          return increaseIndent(
-            `Not ${desc}, due to ${pluralise(errors.length, 'validation error', 'validation errors')}:\n` +
-              errors.map(error => increaseIndent(error.toString(), 4)).join('\n'),
-            4
-          );
-        })
-        .join('\n');
+    return `${this.pathString(root)}: ${this.message} - the following assertions failed:\n` + formatEitherValidationErrorMessages(this.errors);
   }
 }
 
@@ -93,16 +53,16 @@ export class ErrorResult {
     }
   }
 
-  public addPathNode(node: PathNode): ErrorResult {
+  public addPathSegment(seg: string | number): ErrorResult {
     for (const error of this.errors) {
-      error.addPathNode(node);
+      error.addPathSegment(seg);
     }
 
     return this;
   }
 
-  public toString(root: string = '$'): string {
-    return `${this.errors.length} validation error${this.errors.length === 1 ? '' : 's'}:\n${this.errors.map(error => increaseIndent(error.toString(root), 4)).join('\n')}`;
+  public toString(root: string = '$', prefix: string = ''): string {
+    return formatErrorResultMessage(prefix, root, this.errors);
   }
 
   public static isErrorResult(arg: any): arg is ErrorResult {
