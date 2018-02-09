@@ -1,17 +1,17 @@
 import { keysOf, tryCatch, primitiveType } from './utils';
 import {
-  ArrayIndexPathNode,
   error,
   errorFromException,
   ErrorResult,
   SuccessResult,
-  KeyPathNode,
   success,
   ValidationError,
   ValidationResult,
   EitherValidationError
 } from './validation-result';
 export * from './validation-result';
+export { setColours } from './formatting';
+import { setColours } from './formatting';
 
 
 export type Validator<T> = {
@@ -79,7 +79,7 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
       );
 
       if (!result.success) {
-        return errors.concat(result.addPathNode(new KeyPathNode(key)).errors);
+        return errors.concat(result.addPathSegment(key).errors);
       }
 
       partiallyValidated[key] = result.value;
@@ -266,7 +266,7 @@ export function eachItem<T>(assertion: (arg: any) => ValidationResult<T>, next?:
       return new ErrorResult(
         results
           .map((item, index) => {
-            if (!item.success) item.addPathNode(new ArrayIndexPathNode(index));
+            if (!item.success) item.addPathSegment(index);
             return item;
           })
           .filter<ErrorResult>(ErrorResult.isErrorResult)
