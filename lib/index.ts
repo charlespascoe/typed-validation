@@ -391,3 +391,13 @@ export function either(...options: Array<IEitherOption<any>>): (arg: any) => any
     return new ErrorResult(eitherError);
   };
 }
+
+
+export function convert<T,U>(func: (arg: T) => U): (arg: T) => ValidationResult<U> {
+  return (arg) => {
+    return tryCatch(
+      () => success(func(arg)),
+      (err) => errorFromException(err)
+    );
+  };
+}
