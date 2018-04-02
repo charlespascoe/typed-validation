@@ -129,7 +129,7 @@ export function nullable(next?: (arg: any) => ValidationResult<any>): (arg: any)
 
 
 export function defaultsTo(def: any): (arg: any) => ValidationResult<any>;
-export function defaultsTo<T>(def: T, next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function defaultsTo<T>(def: any, next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function defaultsTo(def: any, next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
     if (arg === undefined) arg = def;
