@@ -24,5 +24,6 @@ export function keysOf<T>(arg: T): Array<keyof T> {
 
 export function primitiveType(arg: any): string {
   if (arg instanceof Array) return 'array';
+  if (arg === null) return 'null';
   return typeof arg;
 }

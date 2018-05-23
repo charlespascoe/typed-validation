@@ -118,6 +118,19 @@ export function optional(next?: (arg: any) => ValidationResult<any>): (arg: any)
 }
 
 
+export function required(): (arg: any) => ValidationResult<any>;
+export function required<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
+export function required(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
+  return (arg: any) => {
+    if (arg === undefined) {
+      return error('REQUIRED', 'Required - the value cannot be undefined');
+    }
+
+    return next ? next(arg) : success(arg);
+  }
+}
+
+
 export function nullable(): (arg: any) => ValidationResult<any | null>;
 export function nullable<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T | null>;
 export function nullable(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any | null> {

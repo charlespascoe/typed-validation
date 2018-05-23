@@ -1,4 +1,4 @@
-import { formatPath, formatErrorResultMessage, formatEitherValidationErrorMessages } from './formatting';
+import { formatPath, formatErrorResultMessage, formatEitherValidationErrorMessages, concatenateItems } from './formatting';
 
 
 export type ValidationResult<T> = SuccessResult<T> | ErrorResult;
@@ -35,7 +35,8 @@ export class EitherValidationError extends ValidationError {
   }
 
   public toString(root: string = '$'): string {
-    return `${this.pathString(root)}: ${this.message} - the following assertions failed:\n` + formatEitherValidationErrorMessages(this.errors);
+    const names = concatenateItems(Object.keys(this.errors), 'or');
+    return `${this.pathString(root)}: ${this.message} - expected either ${names}.\nThe following assertions failed:\n` + formatEitherValidationErrorMessages(this.errors);
   }
 }
 
