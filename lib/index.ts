@@ -298,7 +298,7 @@ export function isObject(): (arg: any) => ValidationResult<any>;
 export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
+    if (typeof arg !== 'object' || arg instanceof Array || arg === null) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
