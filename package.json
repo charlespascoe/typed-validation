@@ -1,6 +1,6 @@
 {
   "name": "typed-validation",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Validate Objects Against TypeScript Interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,7 +30,7 @@
   "homepage": "https://github.com/cpascoe95/typed-validation#readme",
   "devDependencies": {
     "@types/colors": "1.1.3",
-    "typescript": "2.5.2"
+    "typescript": "^2.9.2"
   },
   "dependencies": {
     "colors": "1.1.2"

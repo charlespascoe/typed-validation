@@ -15,7 +15,7 @@ import { setColours } from './formatting';
 
 
 export type Validator<T> = {
-  [key in keyof T]: (arg: any) => ValidationResult<T[key]>
+  [key in keyof T]-?: (arg: any) => ValidationResult<T[key]>
 };
 
 
@@ -79,7 +79,7 @@ export function conformsTo<T>(validator: Validator<T>, optionsOrNext?: IValidati
       );
 
       if (!result.success) {
-        return errors.concat(result.addPathSegment(key).errors);
+        return errors.concat(result.addPathSegment(typeof key === 'number' || typeof key === 'string' ? key : key.toString()).errors);
       }
 
       partiallyValidated[key] = result.value;
@@ -298,7 +298,7 @@ export function isObject(): (arg: any) => ValidationResult<any>;
 export function isObject<T>(next: (arg: any) => ValidationResult<T>): (arg: any) => ValidationResult<T>;
 export function isObject(next?: (arg: any) => ValidationResult<any>): (arg: any) => ValidationResult<any> {
   return (arg: any) => {
-    if (typeof arg !== 'object' || arg instanceof Array) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
+    if (typeof arg !== 'object' || arg instanceof Array || arg === null) return error('NOT_OBJECT', `Expected object, got ${primitiveType(arg)}`);
     return next ? next(arg) : success(arg);
   };
 }
@@ -324,7 +324,7 @@ export function isMap(next?: (arg: any) => ValidationResult<any>): (arg: any) =>
     const nonStringKeys = keysOf(arg).filter(key => typeof key !== 'string');
 
     if (nonStringKeys.length > 0) {
-      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${key} (${primitiveType(arg)})`)}`);
+      return error('NOT_STRING_KEY', `Expected string keys, got: ${nonStringKeys.map(key => `${typeof key === 'symbol' ? key.toString() : key} (${primitiveType(arg)})`)}`);
     }
 
     return next ? next(arg) : success(arg);

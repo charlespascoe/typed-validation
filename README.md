@@ -11,6 +11,8 @@ Build strongly-typed validators that TypeScript can understand, so that TypeScri
 
 `$ npm install --save typed-validation`
 
+*Note:* When using this module in a TypeScript project, 0.8.1 and later versions of this module require TypeScript 2.8 or above.
+
 ## Basic Usage ##
 
 **Example:** check that a value of type `any` (perhaps from an untrusted source, such as a file) is an object that conforms to an interface called `Employee`:
@@ -20,7 +22,7 @@ Build strongly-typed validators that TypeScript can understand, so that TypeScri
 interface Employee {
   name: string;
   roleCode: number;
-  completedTraining: boolean | undefined;
+  completedTraining?: boolean;
   addressPostcode: string;
 }
 
@@ -238,27 +240,19 @@ Used when the properties may not present on the object, or its value is undefine
 
 ```ts
 interface IFoo {
-  bar: string | undefined;
+  bar?: string;
+  // You can also use 'undefined' in a union type
+  baz: number | undefined;
 }
 
 const fooValidator: Validator<IFoo> = {
   bar: optional(isString()),
+  baz: optional(isNumber())
 };
 
 // Both of these are acceptable
 validate({}, conformsTo(fooValidator));
 validate({bar: undefined}, conformsTo(fooValidator));
-```
-
-**Note:** it is recommended you specify `undefined` in the type (e.g. `prop: T | undefined`) instead of optional properties (e.g. `prop?: T`), because the compiler will allow optional properties to be missing from the validator, which would result in the property always defaulting to `undefined`:
-
-```ts
-interface IFoo {
-  bar?: string;
-}
-
-// TypeScript will think this is a valid validator
-const fooValidator: Validator<IFoo> = { };
 ```
 
 ### nullable ###
