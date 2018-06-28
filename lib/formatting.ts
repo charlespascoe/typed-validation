@@ -1,14 +1,14 @@
-import * as colors from 'colors/safe';
+import {
+  bgRed,
+  bold,
+  cyan,
+  magenta,
+  red,
+  white,
+  yellow,
+} from './colours';
 import { ValidationError } from './validation-result';
 import { keysOf } from './utils';
-
-
-export function setColours(enabled: boolean) {
-  (colors as any).enabled = enabled;
-}
-
-
-setColours(false);
 
 
 export function repeat(text: string, count: number): string {
@@ -34,14 +34,14 @@ export function pluralise(count: number, singular: string, plural: string): stri
 
 
 export function formatPath(root: string, path: Array<string | number>): string {
-  return colors.magenta(root) + path
+  return magenta(root) + path
     .map(component => {
       if (typeof component === 'number') {
-        return colors.yellow('[') + colors.red(`${component}`) + colors.yellow(']');
+        return yellow('[') + red(`${component}`) + yellow(']');
       } else if (/^[$a-z_][$a-z_0-9]*$/i.test(component)) {
-        return colors.yellow('.') + colors.cyan(component);
+        return yellow('.') + cyan(component);
       } else {
-        return colors.yellow('[') + colors.red(`'${component.replace('\\', '\\\\').replace('\'', '\\\'')}'`) + colors.yellow(']')
+        return yellow('[') + red(`'${component.replace('\\', '\\\\').replace('\'', '\\\'')}'`) + yellow(']')
       }
     })
     .join('');
@@ -49,7 +49,7 @@ export function formatPath(root: string, path: Array<string | number>): string {
 
 
 export function formatErrorResultMessage(prefix: string, root: string, errors: ValidationError[]): string {
-    return colors.white(colors.bgRed(colors.bold(`${prefix}${errors.length} validation error${errors.length === 1 ? '' : 's'}:`))) + '\n' +
+    return white(bgRed(bold(`${prefix}${errors.length} validation error${errors.length === 1 ? '' : 's'}:`))) + '\n' +
       errors.map(error => increaseIndent(error.toString(root), 4)).join('\n');
 }
 
@@ -60,7 +60,7 @@ export function formatEitherValidationErrorMessages(errorsPerType: {[description
         const errors = errorsPerType[desc];
 
         return increaseIndent(
-          colors.bold(colors.red(`Not ${desc}, due to ${pluralise(errors.length, 'validation error', 'validation errors')}:`)) + '\n' +
+          bold(red(`Not ${desc}, due to ${pluralise(errors.length, 'validation error', 'validation errors')}:`)) + '\n' +
             errors.map(error => increaseIndent(error.toString(), 4)).join('\n'),
           4
         );
