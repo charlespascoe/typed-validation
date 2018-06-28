@@ -10,8 +10,7 @@ import {
   EitherValidationError
 } from './validation-result';
 export * from './validation-result';
-export { setColours } from './formatting';
-import { setColours } from './formatting';
+export { enableColours } from './colours';
 
 
 export type Validator<T> = {
