@@ -15,7 +15,7 @@ import { setColours } from './formatting';
 
 
 export type Validator<T> = {
-  [key in keyof T]: (arg: any) => ValidationResult<T[key]>
+  [key in keyof T]-?: (arg: any) => ValidationResult<T[key]>
 };
 
 
