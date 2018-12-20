@@ -3,9 +3,10 @@
 [![npm](https://img.shields.io/npm/l/typed-validation.svg)](https://www.npmjs.com/package/typed-validation)
 
 # Strongly-Typed Validators for TypeScript
-*(Formerly `validate-interface`)*
 
-Build strongly-typed validators that TypeScript can understand, so that TypeScript can validate that your validator is correct.
+In TypeScript, `JSON.parse` returns type `any`, which isn't useful if you want type safety - if you're using TypeScript, you probably do.
+
+`typed-validation` lets you build build validators that TypeScript can understand, meaning that TypeScript can check that your validator aligns with the type it's supposed to be validating - no need to force types using [type assertion](https://basarat.gitbooks.io/typescript/docs/types/type-assertion.html)!
 
 ## Installation ##
 
