@@ -2,8 +2,8 @@
   "name": "typed-validation",
   "version": "0.8.2",
   "description": "Validate Objects Against TypeScript Interfaces",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc --pretty --outDir ./dist/ || exit 0",
     "watch": "npm run clean && tsc --pretty -w --outDir ./dist/",
